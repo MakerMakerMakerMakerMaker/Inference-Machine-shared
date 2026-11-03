@@ -1,0 +1,4086 @@
+/* Neutrals, type and the accent come from the site's design system
+   (../design/tokens.css): the page is --ground, a panel is --bg,
+   a raised or inset field is --surface, rules are --hair and --grid, text is
+   --ink and --dim. The colours below that are the game's own data meanings. */
+/* Type grows with the window; nothing else does. --tpx is one pixel of type: 1px
+   on a window 1000px wide or 600px tall, rising to 1.15px at 1600px wide and
+   800px tall, whichever of the two is smaller (about 1.1px in the browser on a
+   1440x900 laptop, 1.15px on a 1920x1080 screen). Every font size is a count of
+   it, the ramp's (tokens.css) included, so text scales while panels, gaps and
+   icons keep their sizes; only the left column's narrowest width (#app) follows
+   the type, since its tables are made of text. Phones stay at 1px (mobile.css).
+   A clamp in px, not a bare vw, so browser zoom still enlarges the text. */
+:root {
+  --tpx: clamp(1px, min(0.75px + 0.025vw, 0.55px + 0.075vh), 1.15px);
+  --fs-0: calc(12 * var(--tpx));
+  --fs-1: calc(14 * var(--tpx));
+  --fs-2: calc(17 * var(--tpx));
+  --fs-3: calc(20 * var(--tpx));
+  --fs-4: calc(24 * var(--tpx));
+  --fs-5: calc(29 * var(--tpx));
+}
+:root {
+  --card: var(--bg);
+  --faint: color-mix(in srgb, var(--dim) 70%, var(--bg));
+  --ours: var(--viz-ours);
+  /* The panels are denser than a page, so two steps sit under the ramp's 12px. */
+  --fs-dense-1: calc(10 * var(--tpx));
+  --fs-dense-2: calc(11 * var(--tpx));
+
+  --att: #3ddc84;
+  --attred: #ff3b3b;
+  --attamber: #ffb347;
+  --req: #6ab0f3;
+  --tok: #7ee787;
+  /* Serving utilization, shared by the Serving panel and the fleet boxes. */
+  --util-mid: #e0a63f;
+  --util-low: #f85149;
+  --mem: #58d6d6;
+  --warn: #ff6b6b;
+  --good: #58c996;
+  /* Elise's colour: the one thing on the board that is hers */
+  --elise: #ff7ad9;
+  /* The fleet's utilization boxes. They are fills, not text, so on paper they
+     can be lighter than the colours above. */
+  --fill-hi: var(--tok);
+  --fill-mid: var(--util-mid);
+  --fill-low: var(--util-low);
+  --fill-elise: var(--elise);
+  /* Neutral buttons are the design system's bordered button: no fill, a rule,
+     ink text. Colour-coded buttons (primary, pause, remove-confirm red,
+     amber/yellow) keep their own. */
+  --btn-bg: transparent;
+  --btn-line: var(--grid);
+  --btn-ink: var(--ink);
+}
+/* The paper theme. The tokens swap the neutrals and the accent; the data
+   colours are darkened to read on paper (about 4.5:1 for the ones set as text). */
+[data-theme="light"] {
+  --att: #12813f;
+  --attred: #c81e1e;
+  --attamber: #a35a00;
+  --req: #1d5fae;
+  --tok: #1f7a32;
+  --util-mid: #9a6200;
+  --util-low: #c4281f;
+  --mem: #0b7a80;
+  --warn: #c62828;
+  --good: #187a52;
+  --elise: #b0228c;
+  /* one lightness and chroma for all four, so no one box outweighs the rest */
+  --fill-hi: #4ea253;
+  --fill-mid: #e4a339;
+  --fill-low: #d95448;
+  --fill-elise: #c35aa4;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font: var(--fs-0) / 1.4 var(--f-data);
+}
+button {
+  font: inherit;
+  font-family: var(--f-ui);
+  cursor: pointer;
+}
+:is(button, a, select, summary, input):focus-visible {
+  outline: 1px dashed var(--ink);
+  outline-offset: 2px;
+}
+input[type="range"] {
+  accent-color: var(--tok);
+  min-width: 0;
+}
+select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--hair);
+  font: inherit;
+  font-size: var(--fs-dense-2);
+  padding: 2px;
+}
+select:hover {
+  border-color: var(--ink);
+}
+#app {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(104px, auto) minmax(190px, 1fr) auto;
+  /* the left column is a quarter of the board, or the width it was dragged to
+     (--left-col, layout.tsx), but never narrower than its text-sized tables and
+     brand bar can fit */
+  grid-template-columns: minmax(calc(348 * var(--tpx)), var(--left-col, 25%)) minmax(
+      0,
+      1fr
+    );
+  height: 100%;
+  width: 100%;
+  gap: 8px;
+  padding: 8px;
+}
+.colSplit {
+  position: absolute;
+  top: var(--split-top, 8px);
+  bottom: 8px;
+  left: var(--split-x, 25%);
+  width: 14px;
+  margin-left: -7px;
+  z-index: 6;
+  cursor: col-resize;
+}
+.rowSplit {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  z-index: 4;
+  cursor: row-resize;
+}
+.rowSplit.below {
+  bottom: -11px;
+}
+.rowSplit.above {
+  top: -11px;
+}
+.dragPad {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  color: var(--faint);
+  pointer-events: none;
+}
+.dragPad svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.colSplit .dragPad {
+  width: 14px;
+  height: 28px;
+  margin: -14px 0 0 -7px;
+}
+.rowSplit .dragPad {
+  width: 28px;
+  height: 14px;
+  margin: -7px 0 0 -14px;
+}
+.rowSplit .dragPad svg {
+  transform: rotate(90deg);
+}
+.colSplit:hover .dragPad,
+.rowSplit:hover .dragPad,
+body.panelSizing .dragPad,
+body.panelSizingX .dragPad {
+  color: var(--ink);
+  border-color: var(--faint);
+}
+body.panelSizing,
+body.panelSizingX {
+  user-select: none;
+}
+body.panelSizing {
+  cursor: row-resize;
+}
+body.panelSizingX,
+body.panelSizingX .colSplit {
+  cursor: col-resize;
+}
+.panelFold {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.panelFold svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+.panelFold.collapsed svg {
+  transform: rotate(-90deg);
+}
+.panelFold:hover {
+  color: var(--ink);
+}
+.panelTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.panelIco {
+  width: 12px;
+  height: 12px;
+  color: var(--ink);
+  flex: none;
+  image-rendering: pixelated;
+}
+/* Progress metrics live inside the Progress panel, stacked to fit the left column. */
+#hud {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.stat {
+  flex: 1 1 auto;
+  max-width: none;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.stat.money {
+  flex: 1 1 auto;
+}
+/* Capital is the headline tile: its label, amount, arrow and coin are 1.5x the
+   other tiles' (10px label, 17px amount, 11px arrow, 20px coin before), and the
+   tile grows to fit. mobile.css keeps the phone header at its own sizes. */
+.stat.money .v {
+  font-size: calc(25.5 * var(--tpx));
+}
+.stat.money .l {
+  font-size: calc(15 * var(--tpx));
+  letter-spacing: 0.12em;
+}
+#tClock,
+#tGrind {
+  flex: 1 1 auto;
+  max-width: none;
+  min-width: 0;
+  width: 100%;
+}
+/* The trophy's cut-out is painted in --card, so it has to match the button fill. */
+#boardOpen {
+  --card: var(--btn-bg);
+  width: auto;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 8px;
+}
+#boardOpen .hanim {
+  position: static;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+#tClock .v,
+#tGrind .v {
+  font-size: var(--fs-0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 3px 6px;
+}
+[title] {
+  cursor: help;
+}
+.big[title],
+button[title],
+select[title] {
+  cursor: pointer;
+}
+.stat .l {
+  flex: none;
+  color: var(--dim);
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+.stat .v {
+  margin-left: auto;
+  font-size: var(--fs-0);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+/* above the popups (.ov), so a tip inside the news popup is not drawn behind it */
+#hoverTip {
+  position: fixed;
+  z-index: 21;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  padding: 6px 9px;
+  font-size: var(--fs-dense-2);
+  line-height: 1.4;
+  color: var(--ink);
+  pointer-events: none;
+}
+#hoverTip * {
+  pointer-events: none;
+}
+#hoverTip .hs {
+  color: var(--ink);
+}
+#hoverTip .hd {
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+  margin-top: 4px;
+}
+.stat .v.neg {
+  color: var(--warn);
+}
+.stat.money .v {
+  color: var(--ours);
+}
+.stat.money .v.neg {
+  color: var(--warn);
+}
+.stat {
+  cursor: default;
+}
+.stat:hover {
+  border-color: var(--grid);
+}
+/* little pixel-art icons on the right of the three headline tiles - flat blocks,
+   stepped animation, no glow */
+.stat.hasanim {
+  position: relative;
+  padding-right: 30px;
+}
+.stat.hasanim .l {
+  margin-right: 0;
+}
+.hanim {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  height: 20px;
+  width: auto;
+  margin-top: -10px;
+  pointer-events: none;
+  shape-rendering: crispEdges;
+}
+.hanim.coin,
+.hanim.trophy {
+  color: var(--ours);
+  width: 20px;
+}
+.stat.money {
+  min-height: 42px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.stat.money.hasanim {
+  padding-right: 45px;
+}
+.stat.money .hanim.coin {
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+}
+/* A solid dial with cut-out hands in the dark; on paper that is a black blob,
+   so the light theme draws the dial as a ring with ink hands. */
+.hanim.clock {
+  --clock-face: currentColor;
+  --clock-hand: var(--card);
+  color: var(--ink);
+  width: 20px;
+}
+[data-theme="light"] .hanim.clock {
+  --clock-face: var(--card);
+  --clock-hand: currentColor;
+}
+.coin-body,
+.trophy-body,
+.clock-body {
+  transform-box: fill-box;
+}
+.coin-body {
+  transform-origin: center;
+  animation: coinSpin 1.8s steps(6) infinite;
+}
+@keyframes coinSpin {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.15);
+  }
+}
+.trophy-body,
+.clock-body {
+  transform-origin: bottom center;
+  animation: trophyBob 1.6s steps(2) infinite;
+}
+@keyframes trophyBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+#hud.frozen .hanim,
+#hud.frozen .hanim * {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hanim,
+  .hanim * {
+    animation: none !important;
+  }
+}
+/* #rightSection is column 2's own vertical strip, spanning the two content rows as one
+   grid item so it scales independently of column 1. Inside it, a plain flex column
+   splits the space. #left is the matching strip in column 1. */
+#rightSection {
+  grid-row: 1/3;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+#workRow {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+/* Serving and R&D each sit under a pixel-art GPU rack (RackHeader.tsx). The rack's
+   strip overlaps the panel's top edge by 2px and sits behind it, so the GPUs look
+   like they rise out from behind the panel. */
+#workRow > .rackWrap {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.rackWrap > .panel {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+}
+.rackHead {
+  flex: none;
+  position: relative;
+  z-index: 0;
+  height: 30px;
+  margin-bottom: -2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rackHead canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+/* Profit per day in the Progress panel: `$X/day`, with a chevron that drops down
+   total revenue and total costs underneath. Each figure is tinted by direction
+   (green in, red out). */
+#hud .stat.income {
+  cursor: help;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+#hud .stat.income .v .up,
+#hud .stat.income .incomeBreak .up {
+  color: var(--tok);
+}
+#hud .stat.income .v .dn,
+#hud .stat.income .incomeBreak .dn {
+  color: var(--warn);
+}
+#hud .stat.income .v {
+  margin-left: auto;
+  font-size: var(--fs-1);
+}
+/* the breakdown is always open in the side panel, so no chevron there (a phone
+   keeps it: mobile.css) */
+.incomeToggle {
+  flex: none;
+  margin-left: -4px;
+  color: var(--dim);
+  display: none !important;
+}
+.incomeToggle svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  transition: transform 0.15s ease;
+}
+.stat.income.open .incomeToggle svg {
+  transform: rotate(180deg);
+}
+.incomeToggle:hover {
+  color: var(--ink);
+}
+.incomeBreak {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 0 1px;
+  border-top: 1px solid var(--hair);
+}
+.incomeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-dense-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* right-align the figures with the profit above */
+.incomeRow > :last-child {
+  margin-left: auto;
+  margin-right: 0;
+}
+/* the part of the costs on GPUs not serving: a quieter line under Total costs */
+.incomeRow.sub {
+  color: var(--dim);
+  padding-left: 10px;
+}
+.incomeRow.sub .dn {
+  opacity: 0.8;
+}
+/* Sixteen cells, one row, the height of the purchase button. Each cell is an
+   equal share of that row's rented GPUs. Idle and an empty fleet are the
+   same black, so zero GPUs is just an all-black track. */
+.gpuBoxes {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  height: 34px;
+  min-width: 0;
+}
+.gpuBox {
+  min-width: 0;
+  height: 100%;
+  border-radius: 0;
+  background: var(--ground);
+}
+.gpuBox.hi {
+  background: var(--fill-hi);
+  box-shadow: none;
+}
+.gpuBox.mid {
+  background: var(--fill-mid);
+  box-shadow: none;
+}
+.gpuBox.low {
+  background: var(--fill-low);
+  box-shadow: none;
+}
+.gpuBox.elise {
+  background: var(--fill-elise);
+  box-shadow: none;
+}
+.gpuBox.idle {
+  background: var(--ground);
+}
+.gpuSwatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 0;
+  vertical-align: -1px;
+}
+.gpuSwatch.hi {
+  background: var(--fill-hi);
+}
+.gpuSwatch.mid {
+  background: var(--fill-mid);
+}
+.gpuSwatch.low {
+  background: var(--fill-low);
+}
+.gpuSwatch.elise {
+  background: var(--fill-elise);
+}
+.gpuSwatch.idle {
+  background: var(--ground);
+  box-shadow: inset 0 0 0 1px var(--grid);
+}
+#rdPanel {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+#statsPanel {
+  position: relative;
+  flex: 0 1 auto;
+  max-height: 34%;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+#statsPanel:not(.hasH) #rdBody {
+  overflow: auto;
+  min-height: 0;
+}
+#statsPanel.hasH {
+  flex: 0 0 auto;
+  height: var(--h-stats);
+  max-height: none;
+}
+#statsPanel.hasH #rdBody {
+  overflow: auto;
+}
+#statsPanel h2 {
+  margin: 0;
+  flex: none;
+}
+/* Same box as the Serving heading so the two panels' contents start level: the
+   heading is as tall as its title row (fold button + icon), and the taller
+   "Powered by Elise" badge takes no height of its own (negative block margins) -
+   it centres on the row and spills a couple of px into the panel padding. */
+#rdPanel h2 {
+  margin: 0 0 6px;
+}
+.panel h2 #rdElise {
+  flex: none;
+  margin: -3px 0 -3px 8px;
+  font-size: var(--fs-dense-1);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--elise);
+  background: var(--ground);
+  padding: 2px 6px;
+  border: 1px solid var(--elise);
+  border-radius: 0;
+  line-height: 1.3;
+}
+.panel h2 #rdElise:hover {
+  background: color-mix(in srgb, var(--elise) 16%, var(--ground));
+}
+.panel h2 #rdElise {
+  display: inline-flex;
+  align-items: center;
+}
+/* 10px so each cell of the 10-cell grid is one whole pixel */
+.panel h2 #rdElise .sparkle {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  color: var(--ours);
+}
+#rdTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+  flex: none;
+}
+#rdTabs button {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  color: var(--btn-ink);
+  font: inherit;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 0;
+  cursor: pointer;
+}
+#rdTabs button.on {
+  color: var(--bg);
+  border-color: var(--ink);
+  background: var(--ink);
+}
+#rdBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+#rdTps {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-dense-2);
+  font-variant-numeric: tabular-nums;
+}
+#rdTps col.gpuCol {
+  width: 18%;
+}
+#rdDemand col.gpuCol {
+  width: 11%;
+}
+#rdTps th {
+  text-align: right;
+  color: var(--dim);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  padding: 0 6px 5px 0;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+#rdTps th:first-child,
+#rdTps td:first-child {
+  text-align: left;
+  padding-left: 0;
+  color: var(--ink);
+  white-space: nowrap;
+}
+#rdTps td {
+  padding: 3px 6px 3px 0;
+  color: var(--ink);
+  vertical-align: baseline;
+}
+#rdTps td.n {
+  text-align: right;
+  font-weight: 650;
+  color: var(--ink);
+}
+#rdTps td.n .rdPair {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  vertical-align: baseline;
+}
+.gainPop {
+  display: inline-block;
+  border-radius: 0;
+  transform-origin: 50% 65%;
+  animation: gainPop 5s linear forwards;
+}
+@keyframes gainPop {
+  0% {
+    color: var(--ours);
+    background: color-mix(in srgb, var(--ours) 22%, transparent);
+    text-shadow: 0 0 14px color-mix(in srgb, var(--ours) 93%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ours) 20%, transparent);
+    transform: scale(1.18);
+  }
+  8% {
+    transform: scale(1);
+  }
+  62% {
+    color: var(--ours);
+    background: color-mix(in srgb, var(--ours) 14%, transparent);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--ours) 67%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ours) 12%, transparent);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    color: inherit;
+    background: transparent;
+    text-shadow: 0 0 0 transparent;
+    box-shadow: 0 0 0 0 transparent;
+    transform: scale(1);
+  }
+}
+#rdTps th.gpuCol,
+#rdDemand th.gpuCol {
+  vertical-align: bottom;
+}
+#rdTps th.locked,
+#rdDemand th.gpuCol.locked {
+  color: var(--faint);
+}
+#rdTps td.lockedCol,
+#rdDemand td.lockedCol {
+  position: relative;
+  padding: 0;
+  vertical-align: middle;
+}
+#rdTps tr.upcoming td:first-child,
+#rdDemand tr.upcoming td:first-child {
+  color: var(--faint);
+  font-style: italic;
+}
+.noFit {
+  display: inline-block;
+  color: var(--faint);
+  cursor: help;
+}
+.noFit svg {
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+}
+.cellLock {
+  display: inline-block;
+  color: var(--faint);
+}
+.cellLock .rentLockIco {
+  width: 11px;
+  height: 11px;
+  vertical-align: -1px;
+}
+.upcomingName .rentLockIco {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+#rdTps td.lockedCol .rentLock,
+#rdDemand td.lockedCol .rentLock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-sizing: border-box;
+  padding: 4px;
+  color: var(--dim);
+  font-size: var(--fs-dense-1);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+#rdTps td.lockedCol .rentLockIco,
+#rdDemand td.lockedCol .rentLockIco {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+#rdTps th.gpuAura,
+#rdDemand th.gpuAura {
+  animation: statsHeadAura 3.6s linear forwards;
+}
+#rdTps td.n.gpuAura,
+#rdDemand td.n.gpuAura {
+  animation: statsColAura 3.6s linear forwards;
+}
+#rdTps tr.modelAura td:first-child,
+#rdDemand tr.modelAura td:first-child {
+  animation: modelNameAura 3.6s linear forwards;
+}
+#rdTps tr.modelAura td.n,
+#rdDemand tr.modelAura td.n {
+  animation: statsColAura 3.6s linear forwards;
+}
+@keyframes statsHeadAura {
+  0%,
+  35% {
+    color: var(--ours);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--ours) 80%, transparent);
+    background: color-mix(in srgb, var(--ours) 18%, var(--bg));
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    color: var(--dim);
+    text-shadow: 0 0 12px transparent;
+    background: transparent;
+  }
+}
+@keyframes modelNameAura {
+  0%,
+  35% {
+    color: var(--ours);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--ours) 80%, transparent);
+    background: color-mix(in srgb, var(--ours) 18%, var(--bg));
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    color: var(--ink);
+    text-shadow: 0 0 12px transparent;
+    background: transparent;
+  }
+}
+@keyframes statsColAura {
+  0%,
+  35% {
+    background: color-mix(in srgb, var(--ours) 18%, var(--bg));
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    background: transparent;
+  }
+}
+#rdTps td.n.on {
+  color: var(--tok);
+}
+#rdTps td.n.loss,
+#rdTps td.n.loss.on,
+#rdTps td.n.loss.boost {
+  color: var(--util-low);
+}
+#rdNote {
+  font-size: var(--fs-dense-1);
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+/* On a laptop the colour keys and the Stats tabs' notes are hover tips instead,
+   to give their lines back to the panels: the fleet key rides on the GPU boxes
+   (GpuPanel.tsx), the Monitoring keys and values on each chart band (Chart.tsx),
+   and each tab's note on its button (RdPanel.tsx). A phone has no hover, so it
+   keeps them on screen. */
+html:not(.mob) #fleetHead .usageKey,
+html:not(.mob) #chartwrap .chartLegend,
+html:not(.mob) #rdNote {
+  display: none;
+}
+#rdTps td.n s {
+  color: var(--faint);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  line-height: 1;
+  text-decoration: line-through;
+  margin: 0;
+}
+#rdDemand {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-dense-2);
+  font-variant-numeric: tabular-nums;
+}
+#rdDemand col.demMid {
+  width: 12%;
+}
+#rdDemand col.demWide {
+  width: 16%;
+}
+#rdDemand th.spanHead {
+  white-space: normal;
+}
+#rdDemand th {
+  text-align: right;
+  color: var(--dim);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  padding: 0 6px 6px 0;
+  white-space: nowrap;
+}
+#rdDemand th:first-child,
+#rdDemand td:first-child {
+  text-align: left;
+  padding-left: 0;
+  color: var(--ink);
+  white-space: nowrap;
+}
+#rdDemand td {
+  padding: 3px 6px 3px 0;
+  color: var(--ink);
+  vertical-align: top;
+}
+#rdDemand td.n {
+  text-align: right;
+  font-weight: 650;
+  color: var(--ink);
+}
+#rdDemand td.n.on {
+  color: var(--tok);
+}
+#rdDemand th.locked,
+#rdDemand td.n.locked {
+  color: var(--faint);
+  font-weight: 500;
+}
+#rdDemand tr:first-child th[colspan] {
+  text-align: center;
+  padding-bottom: 2px;
+}
+#rdDemand th.spanHead,
+#rdDemand th.gpuCol {
+  border-bottom: 1px solid var(--grid);
+  padding-bottom: 5px;
+}
+#rdJobs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+#rdEmpty {
+  margin: 0 0 8px;
+  font-size: var(--fs-dense-2);
+  color: var(--dim);
+}
+.rdJob {
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  padding: 8px 10px;
+  background: var(--surface);
+  transition:
+    border-color 1.2s ease,
+    background 1.2s ease;
+}
+.rdJob.hit {
+  border-color: var(--ours);
+  background: color-mix(in srgb, var(--ours) 6%, transparent);
+}
+.rdJob .serveJobH {
+  align-items: flex-start;
+}
+.rdJob .serveJobH b {
+  min-width: 0;
+}
+.rdTrack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin: 8px 0 2px;
+  cursor: help;
+}
+.rdTrack::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--grid);
+  transform: translateY(-50%);
+}
+.rdStep {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex: 0 1 36px;
+  min-width: 0;
+}
+.rdStep:first-child {
+  flex: 0 0 auto;
+}
+.rdLine {
+  flex: 1 1 28px;
+  height: 2px;
+  min-width: 8px;
+  max-width: 28px;
+  background: var(--grid);
+}
+.rdLine.on {
+  background: var(--ours);
+}
+.rdLine.goal {
+  background: color-mix(in srgb, var(--tok) 40%, var(--bg));
+}
+.rdDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--ours) 40%, var(--bg));
+  background: var(--surface);
+  box-sizing: border-box;
+  flex: none;
+}
+.rdDot.on {
+  background: var(--ours);
+  border-color: var(--ours);
+  animation: rdFill 0.45s ease-out;
+}
+.rdDot.goal {
+  border-color: color-mix(in srgb, var(--tok) 40%, var(--bg));
+}
+.rdDot.goal.on {
+  background: color-mix(in srgb, var(--tok) 40%, var(--bg));
+  border-color: color-mix(in srgb, var(--tok) 40%, var(--bg));
+}
+@keyframes rdFill {
+  0% {
+    transform: scale(0.35);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.rdCast.rdClock {
+  margin: 8px 0 6px;
+}
+.rdClock b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rdDay {
+  display: inline-flex;
+  align-items: center;
+}
+.rdDay svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.rdDay path {
+  fill: none;
+  stroke: var(--faint);
+  stroke-width: 5;
+  stroke-linecap: butt;
+}
+.rdDay path.on {
+  stroke: var(--ours);
+}
+/* While a run is researching, Elise works between the clock and the gain. The two
+   readouts shrink to their text (wrapping if they must) and she takes the rest. */
+.rdCast.rdClock.withElise {
+  grid-template-columns:
+    minmax(56px, max-content)
+    minmax(0, 1fr)
+    minmax(56px, max-content);
+  align-items: end;
+  column-gap: 8px;
+}
+/* the labels wrap to two short lines: "Time / remaining", "Improvement / so far" */
+.rdCast.rdClock.withElise > span > span:first-child {
+  max-width: 11.5ch;
+}
+.rdCast.rdClock.withElise > span + span {
+  padding-left: 0;
+  border-left: 0;
+}
+.rdCast.rdClock.withElise > span:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+.eliseScene {
+  display: block;
+  width: 100%;
+  height: 40px;
+  min-width: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.rdHow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 8px;
+}
+.rdHowL {
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.rdHowB {
+  padding-left: 8px;
+  border-left: 2px solid var(--ours);
+  font-size: var(--fs-0);
+  line-height: 1.35;
+  color: var(--dim);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.rdHow code {
+  color: var(--ink);
+}
+/* A find waiting to be deployed keeps its secret: the reveal popup tells. */
+.rdFoundT {
+  font-family: var(--f-ui);
+  font-size: var(--fs-0);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.rdHold {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+.rdHold i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--tok);
+  opacity: 0.35;
+}
+.rdHold span {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.25;
+}
+.rdHold span b {
+  font-weight: 650;
+}
+#fleetBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+#fleetHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+#fleetHead .usageKey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 10px;
+  color: var(--dim);
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+}
+#fleetHead .usageKey span {
+  white-space: nowrap;
+}
+#fleetCount {
+  font-size: var(--fs-1);
+  font-weight: 650;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  display: inline-block;
+  transition: color 0.45s ease;
+}
+#fleetCount.up {
+  color: var(--good);
+}
+#fleetCount.dn {
+  color: var(--warn);
+}
+#fleetPenalty {
+  margin: 4px 0 0;
+  color: var(--warn);
+  font-size: var(--fs-0);
+  line-height: 1.35;
+}
+#fleetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-0);
+  font-variant-numeric: tabular-nums;
+}
+#fleetTable th {
+  text-align: left;
+  color: var(--dim);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  padding: 0 0 4px;
+}
+#fleetTable th:not(:first-child),
+#fleetTable td.n {
+  text-align: right;
+  padding-left: 4px;
+  white-space: nowrap;
+}
+/* Serving / Elise / Idle legend, then sixteen GPU boxes in the cell under it. */
+#fleetTable th.usageHead,
+#fleetTable td.usage {
+  min-width: 168px;
+  width: 54%;
+  padding-left: 8px;
+  padding-right: 10px;
+  text-align: left;
+}
+#fleetBlock.fit1 #fleetTable th.usageHead,
+#fleetBlock.fit1 #fleetTable td.usage {
+  padding-left: 4px;
+}
+#fleetTable th.cost {
+  line-height: 1.15;
+}
+#fleetTable tr.total td {
+  height: auto;
+  border-top: none;
+  padding-top: 13px;
+  background-image: linear-gradient(var(--grid), var(--grid));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: left 0 top 6px;
+  font-weight: 650;
+  color: var(--ink);
+}
+#fleetTable tr.total td.n.unused {
+  color: var(--warn);
+}
+#fleetTable tbody tr:not(.total) {
+  height: 40px;
+}
+#fleetTable td {
+  height: 40px;
+  padding: 3px 0;
+  box-sizing: border-box;
+  vertical-align: middle;
+  color: var(--ink);
+}
+#fleetTable .gpuTip {
+  cursor: help;
+}
+#fleetTable .gpuName {
+  white-space: nowrap;
+}
+#fleetTable td.n {
+  font-weight: 650;
+  color: var(--ink);
+}
+#fleetTable td.n.unused {
+  color: var(--warn);
+}
+#fleetTable tr.locked td.lockRow {
+  padding: 3px 0;
+  font-weight: 500;
+  font-variant-numeric: normal;
+}
+#fleetTable .rentLock {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--grid);
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+}
+#fleetTable .rentLockIco {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+#chartwrap {
+  flex: 1 1 auto;
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  position: relative;
+  min-width: 0;
+  padding: 0;
+}
+#chartHd {
+  flex: none;
+  margin: 0;
+  padding: 8px 10px 4px;
+  font-size: var(--fs-dense-1);
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 0.16em;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--hair);
+}
+#chartHd .panelTitle {
+  color: var(--ink);
+  letter-spacing: 0;
+}
+html:not(.mob) #chartwrap.collapsed {
+  flex: 0 0 auto;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 10px;
+}
+html:not(.mob) #chartwrap.collapsed #chartHd {
+  padding: 0;
+  border-bottom: 0;
+}
+html:not(.mob) #chartwrap.collapsed .chartBand {
+  display: none;
+}
+#workRow > .panel.collapsed {
+  flex: 1 1 0;
+}
+#gpusPanel {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#gpusPanel.hasH {
+  max-height: var(--h-fleet);
+}
+#gpusPanel.hasH #fleetBlock {
+  padding: 0 8px 8px;
+  margin: 0 -8px -8px;
+  overflow: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+#left:has(#chartwrap.collapsed) #gpusPanel:not(.collapsed):not(.hasH) {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+#timePanel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#timePanel h2 {
+  margin-bottom: 0;
+}
+#servingPanel {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+#servingPanel.collapsed,
+#gpusPanel.collapsed,
+#timePanel.collapsed,
+#rdPanel.collapsed,
+#statsPanel.collapsed {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+#gpusPanel.collapsed {
+  height: auto;
+}
+/* Like #logPanel when News is folded: drop the dragged height (.hasH sets
+   height: var(--h-stats)) so the panel shrinks to its heading. */
+#statsPanel.collapsed {
+  height: auto;
+}
+html:not(.mob) .panel.collapsed > :not(h2),
+html:not(.mob) #rdPanel.collapsed > :not(h2),
+html:not(.mob) #statsPanel.collapsed > :not(h2),
+html:not(.mob) #center.collapsed #logFull,
+html:not(.mob) #center.collapsed #logStrip {
+  display: none !important;
+}
+.panel.collapsed h2,
+#rdPanel.collapsed h2,
+#statsPanel.collapsed h2,
+#center.collapsed #logPanel h2 {
+  margin-bottom: 0;
+}
+#statsPanel:not(.collapsed) {
+  min-height: 72px;
+}
+#serveEmpty {
+  margin: 0 0 8px;
+  font-size: var(--fs-dense-2);
+  color: var(--dim);
+}
+/* Both empty notes hold both texts in one grid cell, the other panel's hidden, so
+   they wrap to the same number of rows and the add buttons stay level. */
+.emptyNote {
+  display: grid;
+}
+.emptyNote > span {
+  grid-area: 1 / 1;
+}
+.emptyNote > .emptyTwin {
+  visibility: hidden;
+}
+#serveJobs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.serveJob {
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+/* Full utilization with market share still to win: the outline breathes green. */
+.serveJob.atCap {
+  animation: serveAtCap 2.4s ease-in-out infinite;
+}
+/* Closing the R&D reveal: each card the improvement speeds up hops twice and its
+   outline flashes green, one card after another (--bump-delay). */
+.serveJob.draft {
+  transform-origin: 50% 50%;
+}
+/* the card a deploy lands on: up to 110% and quickly back (ServingPanel) */
+.serveJob.deployPop {
+  position: relative;
+  z-index: 2;
+  animation: deployPop 0.3s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+@keyframes deployPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.serveJob.bump {
+  animation:
+    serveBump 0.55s cubic-bezier(0.3, 0.7, 0.4, 1) var(--bump-delay, 0ms) both,
+    serveBumpFlash 1s ease-out var(--bump-delay, 0ms) both;
+}
+@keyframes serveBump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  68% {
+    transform: translateY(-3px);
+  }
+  84% {
+    transform: translateY(0);
+  }
+}
+@keyframes serveBumpFlash {
+  0%,
+  45% {
+    border-color: var(--tok);
+    box-shadow:
+      0 0 0 1px var(--tok),
+      0 0 10px color-mix(in srgb, var(--tok) 45%, transparent);
+  }
+  100% {
+    border-color: var(--grid);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes serveAtCap {
+  0%,
+  100% {
+    border-color: var(--grid);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    border-color: var(--tok);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--tok) 35%, transparent);
+  }
+}
+.serveJobH {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  /* the card's title row, 1.25x the old 12px; the cards grow to fit */
+  font-size: calc(15 * var(--tpx));
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+/* the profit trend arrow scales with the title */
+.serveJobH .serveIco {
+  width: 14px;
+  height: 14px;
+}
+.serveJobH > span:first-child {
+  min-width: 0;
+}
+.serveJobH b {
+  font-weight: 650;
+  color: var(--ink);
+}
+.serveProfit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: help;
+}
+.serveProfit b {
+  font-weight: 650;
+  color: inherit;
+}
+.serveProfit.hi {
+  color: var(--tok);
+}
+.serveProfit.low {
+  color: var(--warn);
+}
+.serveProfit .profitUp,
+.serveProfit .profitDn {
+  display: inline-flex;
+}
+.serveProfit .profitUp {
+  color: var(--tok);
+}
+.serveProfit .profitDn {
+  color: var(--warn);
+}
+.serveIco {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.serveJobH .dim,
+.serveJobA .dim,
+.serveJobM {
+  font-size: var(--fs-dense-1);
+  color: var(--dim);
+}
+.serveJobM {
+  margin: 2px 0 4px;
+}
+.serveJobMoney {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: space-between;
+  column-gap: 10px;
+  margin: 0 0 6px;
+  font-size: var(--fs-dense-1);
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.serveJobMoney > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.serveJobMoney > span[data-tip] {
+  cursor: help;
+}
+.serveJobMoney b {
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.serveJobMoney b.revTrend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.serveJobMoney .revUp {
+  color: var(--tok);
+  display: inline-flex;
+}
+.serveJobMoney .revDn {
+  color: var(--warn);
+  display: inline-flex;
+}
+.serveJobMoney .revTrend .serveIco {
+  width: 9px;
+  height: 9px;
+}
+.serveJobMoney b.hi {
+  color: var(--tok);
+}
+.serveJobMoney b.mid {
+  color: var(--util-mid);
+}
+.serveJobMoney b.low {
+  color: var(--util-low);
+}
+.serveJobA {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+select.serveCount {
+  min-width: 0;
+  max-width: 160px;
+  padding: 2px 4px;
+  border-radius: 0;
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+select.serveCount:disabled {
+  cursor: default;
+}
+/* -X / +X either side of the deployment count: one rental batch of GPUs */
+button.serveStep {
+  min-width: 34px;
+  padding: 2px 6px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  border-radius: 0;
+  color: var(--btn-ink);
+  font: inherit;
+  font-family: var(--f-data);
+  font-size: var(--fs-dense-2);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+button.serveStep:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+button.serveRent,
+button.serveRm {
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  color: var(--btn-ink);
+  border-radius: 0;
+  font: inherit;
+  font-size: var(--fs-dense-2);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+button.serveRent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+button.serveRent .cartIco {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+/* hover: the same ink outline as the Fleet panel's rent buttons (#fleetTable
+   .rentAdd), on the cards' Add GPUs, the -X/+X steppers and Remove */
+@media (hover: hover) {
+  button.serveRent:hover:not(:disabled),
+  button.serveStep:hover:not(:disabled),
+  button.serveRm:not(.sure):hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+}
+button.serveRent:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.serveRentW {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.serveRentW,
+button.serveRm {
+  margin-left: auto;
+}
+/* A live card's right end: Add GPUs, then Remove / Terminate early */
+.serveEnd {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  min-width: 0;
+}
+.serveEnd .serveRentW,
+.serveEnd button.serveRm {
+  margin-left: 0;
+}
+button.serveRm.sure {
+  border-color: var(--util-low);
+  color: var(--util-low);
+  background: color-mix(in srgb, var(--warn) 14%, var(--bg));
+}
+.serveDeploy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rdCast {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--fs-dense-1);
+  color: var(--dim);
+}
+.rdCast > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rdCast > span + span {
+  padding-left: 12px;
+  border-left: 1px solid var(--grid);
+}
+.rdCast b {
+  font-size: var(--fs-1);
+  font-weight: 650;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.rdCast b.hi {
+  color: var(--tok);
+}
+.rdGainT {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 5px;
+  font-size: var(--fs-dense-2);
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.rdGainT > span {
+  white-space: nowrap;
+}
+.rdGainT .rdGainNow {
+  font-size: var(--fs-1);
+  font-weight: 650;
+  color: var(--ink);
+}
+.rdGainT .rdUp,
+.rdGainT .rdGainUp {
+  color: var(--tok);
+}
+.rdGainT .rdUp {
+  font-size: var(--fs-dense-1);
+}
+.rdCast .rdGainL {
+  margin-top: 4px;
+}
+.serveDraftT {
+  margin-bottom: 10px;
+  /* 1.25x the old 10px, like the live cards' titles */
+  font-size: calc(12.5 * var(--tpx));
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.serveDraftFields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.serveDraftFields .ctl {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+.serveGpuFixed {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 20px;
+  padding: 2px 4px;
+  background: var(--ground);
+  border: 1px solid var(--hair);
+  color: var(--ink);
+  font-size: var(--fs-dense-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.serveDraftActs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.serveExpect {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--dim);
+}
+.serveExpect b {
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.serveExpect b.low {
+  color: var(--warn);
+}
+.serveDraftActs .big {
+  flex: 1 1 auto;
+  width: auto;
+}
+.serveDraftActs .serveRm {
+  margin-left: 0;
+  padding: 8px 10px;
+}
+button.serveNew {
+  width: 100%;
+  margin-top: 0;
+  background: var(--btn-bg);
+  border: 1px dashed var(--btn-line);
+  color: var(--btn-ink);
+  border-radius: 0;
+  font: inherit;
+  font-size: var(--fs-0);
+  padding: 8px 6px;
+}
+button.serveNew:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+/* The panel has nothing in it yet: the add button's outline breathes to point at the
+   next step - green on Serving (like a card at capacity), Elise's pink on R&D. */
+button.serveNew.nudge {
+  --nudge: var(--tok);
+  animation: serveNudge 2.4s ease-in-out infinite;
+}
+button#rdNew.nudge {
+  --nudge: var(--elise);
+}
+@keyframes serveNudge {
+  0%,
+  100% {
+    border-color: var(--btn-line);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    border-color: var(--nudge);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--nudge) 35%, transparent);
+  }
+}
+#chart {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* left */
+#left {
+  grid-row: 1/3;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hair) transparent;
+}
+#left::-webkit-scrollbar {
+  width: 8px;
+}
+#left::-webkit-scrollbar-thumb {
+  background: var(--hair);
+  border-radius: 0;
+}
+/* Any class that sets a display (grid, flex) beats the hidden attribute, which
+   is how locked controls leaked onto the board at hour zero. One rule, once. */
+[hidden] {
+  display: none !important;
+}
+.panel {
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 8px 10px;
+  min-height: 0;
+  min-width: 0;
+}
+.panel,
+#chartwrap,
+#center {
+  box-shadow: inset 0 2px 0 var(--grid);
+}
+#brandBar {
+  box-shadow: none;
+}
+.panel h2 {
+  font-size: var(--fs-dense-1);
+  font-weight: 700;
+  color: var(--dim);
+  letter-spacing: 0.16em;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  white-space: nowrap;
+}
+.panel h2 span {
+  color: var(--ink);
+  letter-spacing: 0;
+}
+.ctl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 6px 8px;
+  align-items: center;
+  font-size: var(--fs-dense-2);
+  min-width: 0;
+}
+.ctl select {
+  min-width: 0;
+}
+.ctl label {
+  color: var(--dim);
+  white-space: nowrap;
+}
+.ctl input[type="range"] {
+  width: 100%;
+}
+.ctl select {
+  width: 100%;
+}
+#fleetTable th:first-child {
+  width: 1%;
+}
+#fleetTable .rentAdd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  border-radius: 0;
+  color: var(--btn-ink);
+  font-size: var(--fs-0);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+#fleetTable .rentBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.2;
+}
+#fleetTable .rentLine {
+  color: var(--dim);
+  font-size: var(--fs-dense-1);
+  font-weight: 600;
+}
+#fleetTable .rentPop {
+  display: inline-block;
+  transform-origin: 50% 60%;
+  animation: rentPop 0.9s ease-out;
+}
+@keyframes rentPop {
+  0% {
+    color: var(--ours);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--ours) 80%, transparent);
+    transform: scale(1.45);
+  }
+  30% {
+    color: var(--ours);
+    transform: scale(1);
+  }
+  100% {
+    text-shadow: 0 0 12px transparent;
+    transform: scale(1);
+  }
+}
+#fleetTable .rentCost {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+#fleetTable .cartIco {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+/* fit1..fit4 are set by GpuPanel, one step at a time, until the table fits */
+#fleetBlock.fit1 .rentHr {
+  display: none;
+}
+#fleetBlock.fit1 #fleetTable th:not(:first-child),
+#fleetBlock.fit1 #fleetTable td.n {
+  padding-left: 2px;
+}
+#fleetBlock.fit2 .gpuVendor {
+  display: none;
+}
+#fleetBlock.fit3 .cartIco {
+  display: none;
+}
+/* last, the sixteen boxes narrow below their usual width (4px a box at the least) */
+#fleetBlock.fit4 #fleetTable th.usageHead,
+#fleetBlock.fit4 #fleetTable td.usage {
+  min-width: 112px;
+}
+#fleetTable .rentAdd:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+#fleetTable .rentAdd:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+#fleetTable .rentAdd.gpuAura {
+  animation: gpuUnlockAura 3.6s linear forwards;
+}
+@keyframes gpuUnlockAura {
+  0%,
+  35% {
+    box-shadow: 0 0 18px 3px color-mix(in srgb, var(--ours) 73%, transparent);
+    border-color: var(--ours);
+    background: color-mix(in srgb, var(--ours) 18%, var(--bg));
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    box-shadow: 0 0 18px 3px transparent;
+    border-color: var(--btn-line);
+    background: var(--btn-bg);
+  }
+}
+#fleetTable td.hi,
+#fleetTable .rentAdd .hi {
+  animation: rentSizeHiInk 3.6s linear forwards;
+}
+@keyframes rentSizeHiInk {
+  0%,
+  35% {
+    color: var(--ours);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--ours) 80%, transparent);
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    color: var(--ink);
+    text-shadow: 0 0 12px transparent;
+  }
+}
+#timePanel button:disabled,
+#gpusPanel button:disabled {
+  pointer-events: none;
+}
+.ctl.locked select {
+  opacity: 0.6;
+}
+.big {
+  width: 100%;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-line);
+  color: var(--btn-ink);
+  padding: 8px 6px;
+  border-radius: 0;
+  font-size: clamp(calc(10 * var(--tpx)), 0.85vw, calc(12 * var(--tpx)));
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.big:hover {
+  border-color: var(--ink);
+}
+/* the primary action is the design system's filled button: the accent with --accent-on type */
+.big.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on);
+  font-weight: var(--fw-bold);
+}
+.big.primary:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+.big.primary:active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg));
+}
+/* colour-coded .big buttons share the button fill and ink and differ only by their border */
+button.big.rdHold,
+button.big.rdHold:hover {
+  background: var(--btn-bg);
+  border-color: var(--tok);
+  color: var(--btn-ink);
+}
+.big:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ovcard .row .big {
+  white-space: normal;
+  line-height: 1.3;
+}
+#ovDie .row .big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#ovDie .row .big svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+}
+#ovDie .dieHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+#ovDie .dieFace {
+  width: 72px;
+  height: 72px;
+  flex: none;
+}
+#ovDie .dieFace svg {
+  width: 72px;
+  height: 72px;
+  display: block;
+  shape-rendering: crispEdges;
+}
+#ovDie .dieCopy {
+  min-width: 0;
+}
+#ovDie .dieHead h2 {
+  margin: 0 0 4px;
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+}
+#ovDie .dieHead p {
+  margin: 0;
+  color: var(--dim);
+}
+#ovDie #dieN {
+  margin: 14px 0 8px;
+  font-size: var(--fs-5);
+}
+#dieChart {
+  display: block;
+  width: 100%;
+  height: 188px;
+  /* the size its labels are drawn at (GameOverOverlay.tsx reads it back in px) */
+  font-size: var(--fs-dense-1);
+  background: var(--ground);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+}
+#ovDie #dieWhen {
+  margin-top: 8px;
+}
+#ovDie .dieAdvice {
+  margin: 14px 0 0;
+  color: var(--dim);
+  font-size: var(--fs-1);
+  line-height: 1.45;
+}
+#ovDie .dieAdvice > span:first-child {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--faint);
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.big.hot {
+  background: var(--ground);
+  border-color: var(--attamber);
+  color: var(--attamber);
+  animation: panelhaloamber 1.4s ease-in-out infinite;
+}
+/* a gentle nudge toward a button nobody's pressed yet - a soft pulsing
+   glow (same idea as .stat.blink), not the urgent amber of .big.hot */
+.big.hint {
+  animation: bighint 1.8s ease-in-out infinite;
+}
+@keyframes bighint {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--tok) 20%, transparent);
+  }
+}
+@keyframes autospin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* center */
+#center {
+  flex: 0 0 auto;
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 4px;
+  min-height: 0;
+  min-width: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#centerBody {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 0;
+  min-width: 0;
+}
+#logPanel {
+  flex: 0 0 auto;
+  width: 100%;
+  height: var(--h-news, 132px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  padding: 5px 9px;
+}
+#center.collapsed #logPanel {
+  height: auto;
+}
+#logPanel h2 {
+  font-size: var(--fs-dense-1);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0;
+  margin: 0 0 3px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.newsIco {
+  width: 12px;
+  height: 12px;
+  color: var(--ink);
+  flex: none;
+  image-rendering: pixelated;
+}
+#logFull {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  font-size: var(--fs-0);
+  line-height: 1.45;
+  scrollbar-width: thin;
+  scrollbar-color: var(--faint) var(--surface);
+  box-shadow: inset -8px 0 0 var(--surface);
+}
+#logFull::-webkit-scrollbar {
+  width: 8px;
+}
+#logFull::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 0;
+}
+#logFull::-webkit-scrollbar-thumb {
+  background: var(--faint);
+  border-radius: 0;
+}
+#servingPanel::-webkit-scrollbar,
+#rdPanel::-webkit-scrollbar {
+  width: 8px;
+}
+#servingPanel::-webkit-scrollbar-track,
+#rdPanel::-webkit-scrollbar-track {
+  background: var(--surface);
+  border-radius: 0;
+}
+#servingPanel::-webkit-scrollbar-thumb,
+#rdPanel::-webkit-scrollbar-thumb {
+  background: var(--faint);
+  border-radius: 0;
+}
+@supports not selector(::-webkit-scrollbar) {
+  #servingPanel,
+  #rdPanel {
+    scrollbar-width: thin;
+    scrollbar-color: var(--faint) var(--surface);
+  }
+}
+#logFull .e {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--hair);
+  color: var(--dim);
+}
+#logFull .e b {
+  color: var(--ink);
+  font-weight: 400;
+}
+#logFull .nUp,
+#logStripText .nUp {
+  color: var(--tok);
+}
+#logFull .nDn,
+#logStripText .nDn {
+  color: var(--warn);
+}
+#logFull .nNum,
+#logStripText .nNum {
+  color: var(--ours);
+}
+#logFull .nDash,
+#logStripText .nDash {
+  color: var(--faint);
+}
+#logFull a.nMore,
+#logStripText a.nMore,
+#evConseq a.nMore {
+  color: var(--ours);
+  text-decoration: underline;
+}
+#logFull a.nMore:hover,
+#logStripText a.nMore:hover,
+#evConseq a.nMore:hover {
+  color: var(--ink);
+}
+/* a paywalled link only shows its tip; the href is still there for anyone who
+   takes the pointer-events off in devtools */
+.nPaywall {
+  cursor: not-allowed;
+}
+.nPaywall a.nMore {
+  pointer-events: none;
+}
+#logFull .nInfo,
+#logStripText .nInfo {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  color: var(--ink);
+}
+#logFull .e .t {
+  color: var(--faint);
+  margin-right: 6px;
+}
+#logFull .e.in {
+  animation:
+    newsIn 0.45s ease-out,
+    newsAura 1.8s linear;
+}
+@keyframes newsIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes newsAura {
+  0%,
+  35% {
+    background: color-mix(in srgb, var(--ours) 18%, var(--bg));
+    animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1);
+  }
+  100% {
+    background: transparent;
+  }
+}
+#center:not(.full) #logStrip {
+  display: none;
+}
+/* latest news line under the map when the center is in full-map mode */
+#logStrip {
+  flex: none;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ground);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 3px 10px;
+  min-width: 0;
+}
+#logStrip .newsIco {
+  width: 14px;
+  height: 14px;
+}
+#logStripLbl {
+  font-size: var(--fs-dense-1);
+  color: var(--faint);
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+#logStripText {
+  font-size: var(--fs-0);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+#logStripText .t {
+  color: var(--dim);
+  margin-right: 6px;
+}
+#logStripText b {
+  color: var(--ink);
+  font-weight: 400;
+}
+#why {
+  font-size: var(--fs-dense-2);
+  color: var(--dim);
+  text-align: center;
+  white-space: normal;
+  line-height: 1.35;
+}
+#why.on {
+  color: var(--ours);
+}
+#tscl {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  font-size: var(--fs-dense-1);
+  color: var(--dim);
+}
+#tscl .clockActs {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+#tscl button {
+  width: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  white-space: nowrap;
+  gap: 4px;
+  padding: 0 8px;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#tscl button svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+/* Back, deliberately, while a freeze we have not found yet is still out there:
+   solid yellow while running (it reads Pause), solid green while paused (it reads Resume),
+   so whatever stops the clock there is always one visible way to start it. */
+#pauseBtn {
+  background: var(--ours);
+  border-color: var(--ours);
+  color: var(--ground);
+  font-weight: 700;
+}
+#pauseBtn:hover {
+  background: color-mix(in srgb, var(--ours) 80%, var(--ink));
+  border-color: color-mix(in srgb, var(--ours) 80%, var(--ink));
+  color: var(--ground);
+}
+#pauseBtn.paused {
+  background: var(--tok);
+  border-color: var(--tok);
+}
+#pauseBtn.paused:hover {
+  background: color-mix(in srgb, var(--tok) 70%, var(--ink));
+  border-color: color-mix(in srgb, var(--tok) 70%, var(--ink));
+}
+#why {
+  font-size: var(--fs-dense-2);
+}
+/* the first-GPU card: the overlay lets the rent button through, the card does not */
+#tut {
+  position: fixed;
+  inset: 0;
+  z-index: 16;
+  pointer-events: none;
+}
+#tutCard {
+  position: absolute;
+  max-width: 400px;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 12px 16px;
+  pointer-events: auto;
+}
+#tutT {
+  font-size: var(--fs-1);
+  line-height: 1.4;
+  color: var(--ink);
+}
+#tutT b {
+  color: var(--ours);
+}
+#tutActs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.tutAgain {
+  color: var(--ours);
+  text-decoration: underline;
+  cursor: pointer;
+}
+#tutSkip {
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+  text-decoration: underline;
+  cursor: pointer;
+}
+#tutSkip:hover {
+  color: var(--ink);
+}
+#tutNext {
+  width: auto;
+  margin-left: auto;
+  padding: 5px 16px;
+}
+#tutLink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+#tutLink line {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.9;
+  animation: dash 1s linear infinite;
+}
+#dim.white #dimHole {
+  box-shadow: 0 0 0 9999px rgba(5, 7, 10, 0.78);
+}
+/* the tutorial spotlight */
+#dim {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 12;
+}
+#dimHole {
+  position: absolute;
+  border-radius: 0;
+  box-shadow: 0 0 0 9999px rgba(5, 7, 10, 0.72);
+  transition: opacity 0.4s;
+}
+@keyframes smash {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.86);
+  }
+  55% {
+    transform: scale(1.06);
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.big.smash {
+  animation: smash 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+@keyframes smashsm {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(0.95);
+  }
+  55% {
+    transform: scale(1.025);
+  }
+  80% {
+    transform: scale(0.99);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.smash-sm {
+  animation: smashsm 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+/* overlays */
+.ov {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ground) 93%, transparent);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+.ov.show {
+  display: flex;
+}
+#ovEvent .evHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+#ovEvent .evHead .newsIco {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--ink);
+}
+#ovEvent .kicker {
+  margin: 0;
+  flex: 1 1 auto;
+  color: var(--dim);
+  font-size: var(--fs-1);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+#evSeason {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: block;
+}
+#evSeason[hidden] {
+  display: none;
+}
+#evSeason svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+#evTitle[hidden] {
+  display: none;
+}
+#ovEvent .ovcard {
+  max-width: 640px;
+}
+#evAsk:empty {
+  display: none;
+}
+#evChoices .big {
+  flex: 1 1 0;
+  text-align: center;
+}
+#evConseq {
+  margin: 8px 0 0;
+}
+/* The R&D reveal (RdReveal.tsx): the board stays visible behind a light veil. */
+#ovRdReveal {
+  background: color-mix(in srgb, var(--ground) 55%, transparent);
+}
+#ovRdReveal.show {
+  animation: rvVeil 0.22s ease-out both;
+}
+/* The confetti canvas sits over the veil and the board, under the card. */
+#ovRdReveal .rvConfetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+#ovRdReveal .ovcard {
+  position: relative;
+  max-width: 460px;
+  animation: rvPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  box-shadow: 0 10px 40px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+/* With later improvements on the same model and GPU the card also grows (up to
+   125%, --rv-grow from RdReveal.tsx) and snaps back once it has popped in. It
+   animates scale, not transform, so it stacks on rvPop. */
+#ovRdReveal .ovcard.rvGrow {
+  animation:
+    rvPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    rvGrow 0.5s 0.32s both;
+}
+@keyframes rvGrow {
+  0% {
+    scale: 1;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  72% {
+    scale: var(--rv-grow, 1);
+    animation-timing-function: cubic-bezier(0.6, 0, 1, 1);
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes rvVeil {
+  from {
+    background: transparent;
+  }
+}
+@keyframes rvPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+}
+#ovRdReveal .rvHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+#ovRdReveal .rvHead .sparkle {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--elise);
+}
+#ovRdReveal .kicker {
+  margin: 0;
+  color: var(--dim);
+  font-family: var(--f-ui);
+  font-size: var(--fs-0);
+  letter-spacing: 0.04em;
+}
+#ovRdReveal .rdHow {
+  margin: 4px 0 12px;
+}
+#ovRdReveal .rdHowB {
+  font-size: var(--fs-1);
+}
+#ovRdReveal .rvGain {
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 0 14px;
+  font-size: var(--fs-0);
+}
+#ovRdReveal .rdGainT {
+  font-size: var(--fs-0);
+}
+#ovRdReveal .rdGainT .rdGainNow {
+  font-size: var(--fs-2);
+}
+.rvLand {
+  display: inline-block;
+  animation: rvLand 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes rvLand {
+  0% {
+    transform: scale(1.25);
+    color: var(--tok);
+  }
+}
+#ovRdReveal .rvStats {
+  border-top: 1px solid var(--grid);
+  padding-top: 10px;
+}
+#ovRdReveal .rvStatsH {
+  margin-bottom: 6px;
+  font-family: var(--f-ui);
+  font-size: var(--fs-dense-1);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+/* the Stats panel's Profit table, one cell of it */
+.rvTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-0);
+  font-variant-numeric: tabular-nums;
+}
+.rvTable col.gpuCol {
+  width: 55%;
+}
+.rvTable th {
+  text-align: right;
+  color: var(--dim);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.04em;
+  padding: 0 0 5px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+.rvTable th:first-child,
+.rvTable td:first-child {
+  text-align: left;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rvTable td {
+  padding: 5px 0 3px;
+  color: var(--ink);
+  vertical-align: baseline;
+}
+.rvTable td.n {
+  text-align: right;
+  font-weight: 650;
+}
+.rvTable td.n.on {
+  color: var(--tok);
+}
+.rvTable td.n.loss {
+  color: var(--util-low);
+}
+.rvTable .rdPair {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.rvTable s {
+  color: var(--faint);
+  font-weight: 500;
+  font-size: var(--fs-dense-1);
+  text-decoration: line-through;
+}
+#ovRdReveal .rvNote {
+  margin-top: 6px;
+  font-size: var(--fs-dense-1);
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+#ovRdReveal .row {
+  justify-content: flex-end;
+}
+#rvConfirm {
+  min-width: 120px;
+  justify-content: center;
+}
+/* round one: the machine is not on the board at all; the log strip takes the room */
+/* round one has no map; the centre shows the log (see setMapMode) */
+.ovcard {
+  background: var(--card);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  padding: 22px 26px;
+  max-width: 600px;
+  width: 92%;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+}
+.ovcard h2 {
+  font-size: var(--fs-2);
+  color: var(--ink);
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+.ovcard p {
+  color: var(--ink);
+  margin: 8px 0;
+  font-size: var(--fs-1);
+  line-height: 1.5;
+}
+.ovcard p.sub {
+  color: var(--dim);
+  font-size: var(--fs-0);
+}
+.ovcard ul.miss {
+  margin: 8px 0 8px 1.1em;
+  color: var(--ink);
+  font-size: var(--fs-1);
+  line-height: 1.5;
+}
+.ovcard ul.miss li {
+  margin: 2px 0;
+}
+.ovcard a {
+  color: var(--ours);
+}
+#ovStart .ovcard {
+  position: relative;
+  max-width: 640px;
+  padding: 28px 32px 22px;
+}
+#ovStart .mark {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+}
+#ovStart .mark svg {
+  width: 48px;
+  height: 48px;
+  display: block;
+  shape-rendering: crispEdges;
+}
+#ovStart .kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding-right: 64px;
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+#ovStart .kicker .remaster {
+  flex: none;
+  color: var(--faint);
+  font-weight: 400;
+}
+#ovStart .kicker .remaster::before {
+  content: "(";
+}
+#ovStart .kicker .remaster::after {
+  content: ")";
+}
+#ovStart .ovcard h2 {
+  margin: 0 0 14px;
+  padding-right: 64px;
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink);
+}
+#introOne .yr,
+#introAsk .stake {
+  color: var(--ours);
+}
+#ovStart #introAsk {
+  margin: 0;
+  max-width: 38em;
+  color: var(--ink);
+  font-size: var(--fs-1);
+}
+#introGoals {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: var(--fs-1);
+  line-height: 1.35;
+}
+#introGoals li {
+  position: relative;
+  margin: 0;
+  padding: 4px 0 4px 18px;
+}
+#introGoals li::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 0.72em;
+  width: 6px;
+  height: 6px;
+  background: var(--ours);
+}
+#introGoals a {
+  margin-left: 10px;
+  color: var(--elise);
+  font-size: var(--fs-1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+#introGoals a:hover {
+  text-decoration: underline;
+}
+#ovStart .ask {
+  margin: 18px 0 0;
+  color: var(--ink);
+  font-size: var(--fs-1);
+}
+#ovStart .row {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+#ovStart .row .big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  min-width: 140px;
+  padding: 10px 22px;
+}
+#ovStart .row .big svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+}
+/* Theme and mute in the card's bottom-right corner, the mirror of the GPU mark up top */
+#ovStart .row {
+  padding-right: 100px;
+}
+#ovStart .muteCorner {
+  position: absolute;
+  right: 24px;
+  bottom: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--dim);
+  cursor: pointer;
+}
+#ovStart .themeCorner {
+  right: 68px;
+}
+#ovStart .muteCorner:hover {
+  color: var(--ink);
+}
+#ovStart .muteCorner .muteIcon {
+  width: 32px;
+  height: 32px;
+}
+.plans {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+.plan {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 10px;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.plan:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+.plan .big {
+  margin: 0;
+}
+.plan ul {
+  margin: 10px 0 0 1.1em;
+  color: var(--ink);
+  font-size: var(--fs-1);
+  line-height: 1.45;
+}
+.plan li {
+  margin: 4px 0;
+}
+.plan .how {
+  margin-top: 10px;
+  font-size: var(--fs-0);
+}
+.ovcard .num {
+  color: var(--ours);
+  font-size: var(--fs-4);
+  margin: 8px 0;
+}
+.ovcard .row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+/* One font-size on both rows so the em columns match. The header labels are
+   smaller inside that, otherwise # / NAME / SCORE sit on a tighter grid than
+   the scores they name. */
+.lbhd,
+.lb {
+  display: grid;
+  grid-template-columns: 3.2em auto 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font-size: var(--fs-1);
+}
+.lbhd {
+  color: var(--dim);
+  margin-top: 12px;
+}
+.lbhd span {
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lb {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--hair);
+  color: var(--ink);
+  letter-spacing: 0.12em;
+}
+.lb b {
+  color: var(--ink);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.lb .lbNew {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--req);
+  box-shadow: 0 0 6px var(--req);
+  vertical-align: 0.1em;
+}
+.lbTrophy {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.3em;
+  vertical-align: -0.12em;
+  color: var(--ours);
+  shape-rendering: crispEdges;
+}
+.lbhd span:last-child,
+.lb span:last-child {
+  text-align: right;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.lb.you,
+.lb.you b {
+  color: var(--ours);
+}
+.lb.gap {
+  display: block;
+  text-align: center;
+  color: var(--dim);
+  letter-spacing: 0.35em;
+  border-bottom: none;
+  padding: 8px 0 2px;
+}
+.scoreName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.scoreName[hidden] {
+  display: none !important;
+}
+.scoreName label {
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.nameBan {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--warn);
+  font-size: var(--fs-0);
+  line-height: 1.4;
+}
+.nameBan[hidden] {
+  display: none !important;
+}
+#scoreSaveErr {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--dim);
+  font-size: var(--fs-0);
+  line-height: 1.4;
+}
+#scoreSaveErr[hidden] {
+  display: none !important;
+}
+#scoreNameIn {
+  width: 4.6em;
+  background: var(--ground);
+  border: 1px solid var(--ours);
+  color: var(--ours);
+  font: inherit;
+  font-size: var(--fs-2);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  padding: 6px 0 6px 0.32em;
+  border-radius: 0;
+  text-align: center;
+}
+#scoreNameIn:focus {
+  outline: none;
+}
+#scoreNameIn.bad {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, var(--bg));
+}
+.nameOk {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ground);
+  border: 1px solid var(--ours);
+  color: var(--ours);
+  border-radius: 0;
+  padding: 0;
+}
+.nameOk svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.nameOk:hover {
+  background: color-mix(in srgb, var(--ours) 12%, var(--bg));
+}
+.nameOk:disabled {
+  opacity: 0.35;
+  border-color: var(--hair);
+  color: var(--dim);
+  cursor: default;
+}
+.nameOk:disabled:hover {
+  background: var(--ground);
+}
+.nameOk .spin {
+  display: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--ours) 26%, var(--bg));
+  border-top-color: var(--ours);
+  border-radius: 50%;
+  animation: autospin 0.7s linear infinite;
+}
+.nameOk.busy svg {
+  display: none;
+}
+.nameOk.busy .spin {
+  display: block;
+}
+.nameOk.busy:disabled {
+  opacity: 1;
+  border-color: var(--ours);
+  color: var(--ours);
+}
+.scoreLoad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 0;
+  color: var(--dim);
+  font-size: var(--fs-0);
+  letter-spacing: 0.08em;
+}
+.scoreLoad[hidden] {
+  display: none;
+}
+.scoreLoad .spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--ours) 26%, var(--bg));
+  border-top-color: var(--ours);
+  border-radius: 50%;
+  animation: autospin 0.7s linear infinite;
+}
+.scoreShare {
+  margin-top: 14px;
+}
+.scoreShare > span {
+  color: var(--dim);
+  font-size: var(--fs-dense-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.scoreShare .row {
+  margin-top: 8px;
+  flex-direction: column;
+}
+.scoreShare .big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+}
+.scoreShare svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.scoreShare .copyWrap {
+  display: block;
+}
+/* "Copied to Clipboard": a small tip that shows by a share control for a moment
+   after it copies (the score card's copy buttons). */
+.copyWrap {
+  position: relative;
+  display: inline-flex;
+}
+.copyTip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  z-index: 22;
+  transform: translate(-50%, 3px);
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  color: var(--ink);
+  padding: 4px 8px;
+  font-family: var(--f-ui);
+  font-size: var(--fs-dense-2);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-transform: none;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    visibility 0s 0.15s;
+}
+.copyTip.below {
+  bottom: auto;
+  top: calc(100% + 6px);
+  transform: translate(-50%, -3px);
+}
+.copyTip.on {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+/* the brand bar sits at the right edge, so its tip hangs left of centre */
+#brandBar .copyTip.below {
+  left: auto;
+  right: -8px;
+  transform: translate(0, -3px);
+}
+#brandBar .copyTip.below.on {
+  transform: none;
+}
+#ovScore .ovcard {
+  position: relative;
+  z-index: 1;
+}
+.scoreCap {
+  margin: 0 0 10px;
+}
+.scoreCap .scoreBare {
+  margin: -4px 0 6px;
+}
+.scoreCap .chartBand {
+  flex: none;
+  height: 140px;
+  border: 0;
+}
+/* The score card fits the window instead of scrolling: shorter windows tighten
+   the spacing and give up chart height, and short wide ones split the card
+   into the result beside the board. */
+@media (max-height: 760px) {
+  .scoreCap .chartBand {
+    height: clamp(80px, 100dvh - 580px, 140px);
+  }
+  #ovScore .ovcard {
+    padding: 16px 22px;
+  }
+  #ovScore .ovcard h2 {
+    margin-bottom: 4px;
+  }
+  #ovScore .ovcard p,
+  #ovScore .ovcard .num {
+    margin: 4px 0;
+  }
+  #ovScore .lbhd {
+    margin-top: 6px;
+  }
+  #ovScore .lb {
+    padding: 2px 0;
+  }
+  #ovScore .lb.gap {
+    padding: 2px 0 0;
+  }
+  #ovScore .ovcard .row {
+    margin-top: 10px;
+  }
+  .scoreShare {
+    margin-top: 10px;
+  }
+  .scoreShare .row {
+    margin-top: 6px;
+    flex-direction: row;
+  }
+  .scoreShare .copyWrap {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .scoreShare #scoreX {
+    flex: 0 0 64px;
+    width: 64px;
+  }
+}
+@media (max-height: 700px) and (min-width: 760px) {
+  #ovScore .ovcard {
+    display: flex;
+    gap: 28px;
+    width: min(940px, 96vw);
+    max-width: none;
+  }
+  .scoreL,
+  .scoreR {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .scoreL {
+    display: flex;
+    flex-direction: column;
+  }
+  .scoreL > * {
+    flex: none;
+  }
+  .scoreL .scoreCap {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+  .scoreL .scoreCap .chartBand {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 64px;
+    max-height: 240px;
+  }
+  .scoreR > :first-child {
+    margin-top: 0;
+  }
+}
+@media (max-height: 480px) {
+  .scoreShare > span {
+    display: none;
+  }
+  .scoreShare .row {
+    margin-top: 0;
+  }
+  #ovScore .lb {
+    padding: 1px 0;
+  }
+}
+#fw {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+#ovScore .row .big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#ovScore .row .big svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+}
+/* locked rooms render nothing at all - see "room locks" below; no fog-tile CSS needed */
+g.hot .box {
+  stroke: var(--att) !important;
+  stroke-width: 2 !important;
+  animation: halo 1.4s ease-in-out infinite;
+}
+@keyframes halo {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--att) 40%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px var(--att));
+  }
+}
+.panel.hot {
+  border-color: var(--att);
+  animation: panelhalo 1.4s ease-in-out infinite;
+}
+.panel.hot.red,
+.stat.hot.red {
+  border-color: var(--attred);
+  animation: panelhalored 1.4s ease-in-out infinite;
+}
+@keyframes panelhalo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 14px 2px color-mix(in srgb, var(--att) 53%, transparent);
+  }
+}
+@keyframes panelhalored {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 14px 2px color-mix(in srgb, var(--attred) 53%, transparent);
+  }
+}
+@keyframes panelhaloamber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 14px 2px color-mix(in srgb, var(--attamber) 53%, transparent);
+  }
+}
+.panel.flash {
+  animation: flashb 0.5s ease-out 3;
+}
+@keyframes flashb {
+  0% {
+    border-color: var(--ours);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ours) 67%, transparent);
+  }
+  100% {
+    border-color: var(--hair);
+    box-shadow: none;
+  }
+}
+.stat.flash {
+  animation: flashb 0.5s ease-out 3;
+}
+@keyframes dash {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+/* MakerMaker mark, lifted from the web design guide's logo-only markup */
+.mmlogo {
+  display: block;
+  width: auto;
+}
+@keyframes mmp {
+  0%,
+  100% {
+    transform: scaleY(0.02);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mm rect {
+    animation: none !important;
+  }
+  .serveJob.atCap {
+    animation: none;
+    border-color: var(--tok);
+  }
+  .serveJob.bump {
+    animation: serveBumpFlash 1s ease-out var(--bump-delay, 0ms) both;
+  }
+  .serveJob.deployPop {
+    animation: none;
+  }
+  #ovRdReveal.show,
+  #ovRdReveal .ovcard,
+  #ovRdReveal .ovcard.rvGrow,
+  .rvLand {
+    animation: none;
+  }
+  button.serveNew.nudge {
+    animation: none;
+    border-color: var(--nudge);
+  }
+}
+#brandBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: var(--fs-1);
+}
+#brandBar .spacer {
+  flex: 1;
+}
+#brandBar .wordmark {
+  color: var(--ink);
+  font-size: calc(18 * var(--tpx) * var(--brand-fit, 1));
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+#brandBar a {
+  color: var(--dim);
+  text-decoration: none;
+}
+#brandBar a.wordmark {
+  color: var(--ink);
+}
+#brandBar a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+/* Blog and bug?, like the wordmark above: a little larger than the 16px icons
+   beside them so they read at the same visual weight, in a 16px line box so they
+   stay centred on the icons and the bar does not grow. */
+#brandBar a:not(.wordmark, .muteBtn) {
+  font-size: calc(18 * var(--tpx) * var(--brand-fit, 1));
+  line-height: 16px;
+}
+/* The bar centres every item's box, icons and words alike, but Courier Prime sets
+   its capitals above the middle of the line, so the words sat a pixel or two
+   higher than the icons. Trimming each word's box to its capitals and baseline
+   lets the bar centre the capitals themselves, as it does the icons; the padding
+   above and below brings each back to a 16px click target. Where the trim is
+   not supported (Firefox), the words move down by about the gap instead (0.06
+   to 0.11em, depending on how the browser rounds the line). */
+#brandBar .wordmark,
+#brandBar a:not(.wordmark, .muteBtn) {
+  position: relative;
+  top: 0.08em;
+}
+@supports (text-box: trim-both cap alphabetic) {
+  #brandBar .wordmark,
+  #brandBar a:not(.wordmark, .muteBtn) {
+    top: 0;
+    padding-block: calc((16px - 1cap) / 2);
+    text-box: trim-both cap alphabetic;
+  }
+}
+/* the mute toggle: a pixel speaker on its own, sitting after Blog and Share */
+#brandBar .muteBtn {
+  display: inline-flex;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--dim);
+  cursor: pointer;
+}
+#brandBar .muteBtn:hover {
+  color: var(--ink);
+}
+.muteIcon {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+/* The levels panel that opens over the mute button (SoundControl.tsx). The wrapper
+   leaves layout to the button inside it; the panel is placed from script, on top of
+   the popups so it also works on the start card. */
+.soundCtl {
+  display: contents;
+}
+.soundPanel {
+  position: fixed;
+  z-index: 22;
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  color: var(--ink);
+  font-size: var(--fs-0);
+}
+/* the mute switch at the top of the sound menu: the speaker and its word */
+.soundMuteToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--ground);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  color: var(--ink);
+  font-family: var(--f-ui);
+  font-size: var(--fs-0);
+  cursor: pointer;
+}
+.soundMuteToggle:hover {
+  border-color: var(--ours);
+  color: var(--ours);
+}
+.soundMuteToggle[aria-pressed="true"] {
+  color: var(--warn);
+}
+.soundLevel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+}
+.soundLevel label {
+  font-family: var(--f-ui);
+  color: var(--dim);
+  white-space: nowrap;
+}
+.soundLevel .soundPct {
+  font-family: var(--f-data);
+  text-align: right;
+  min-width: 4ch;
+}
+.soundLevel input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.soundPanel.muted .soundLevel input,
+.soundPanel.muted .soundPct {
+  opacity: 0.45;
+}
+.soundPanel .soundHint {
+  margin: 0;
+  color: var(--dim);
+  font-family: var(--f-prose);
+  font-style: italic;
+}
+/* The radio dial (StationTuner.tsx), in the levels panel and on the /sound page:
+   "Station" over the station's name between a step back and a step forward. */
+.stationTuner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.stationLabel {
+  font-family: var(--f-ui);
+  color: var(--dim);
+}
+.stationDial {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 6px;
+}
+.stationDial button {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  background: var(--ground);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  color: var(--ink);
+  font-size: calc(9 * var(--tpx));
+  line-height: 1;
+  cursor: pointer;
+}
+.stationDial button:hover:not(:disabled) {
+  border-color: var(--ours);
+  color: var(--ours);
+}
+.stationDial button:disabled {
+  color: var(--dim);
+  opacity: 0.45;
+  cursor: default;
+}
+.stationName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-family: var(--f-data);
+  color: var(--ours);
+}
+
+/* Panel titles, the news title and the wordmark are written in normal case and
+   set in capitals here (tokens.css: --tt-h1, --tt-h2). */
+.panelTitle,
+#logPanelHd .newsTitle {
+  text-transform: var(--tt-h2);
+}
+#brandBar .wordmark {
+  text-transform: var(--tt-h1);
+}
+/* ── the Progress ripple (components/RippleText.tsx) ──────────────────────
+   Each heading is split into letters. While profit is high enough, #timePanel
+   gets .rippling and --ripple (0 to 1), and every letter bobs up and down a
+   beat after the one before it, so a wave runs left to right through the word.
+   --ripple sets the height of the wave, up to a third of the letter height. */
+.rip {
+  display: inline;
+}
+.ripL {
+  display: inline-block;
+  white-space: pre;
+}
+/* the whole word, for screen readers only */
+.ripSr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+#timePanel.rippling .ripL {
+  animation: progressRipple 1.1s ease-in-out infinite;
+  /* a whole number of cycles back, so the wave is already running on its first frame */
+  animation-delay: calc(var(--i) * 0.09s - 2.2s);
+}
+#timePanel.rippleHold .ripL {
+  animation-play-state: paused;
+}
+@keyframes progressRipple {
+  0%,
+  100% {
+    transform: translateY(calc(var(--ripple) * 0.17em));
+  }
+  50% {
+    transform: translateY(calc(var(--ripple) * -0.17em));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #timePanel.rippling .ripL {
+    animation: none;
+  }
+}
+
+/* ── the Fleet ripple (GpuPanel.tsx) ─────────────────────────────────────
+   From 70% of the profit scale, #gpusPanel gets .boxRippling and --boxRipple
+   (0 to 1 at 100%), and each utilization cell bobs a beat after the one before
+   it, so a wave runs left to right along every row. At full strength a cell
+   moves 5px up and down. `translate` leaves `transform` free. */
+#gpusPanel.boxRippling .gpuBox {
+  animation: fleetRipple 0.9s ease-in-out infinite;
+  /* whole cycles back, so the wave is already running on its first frame */
+  animation-delay: calc(var(--i) * 0.06s - 1.8s);
+}
+#gpusPanel.rippleHold .gpuBox {
+  animation-play-state: paused;
+}
+@keyframes fleetRipple {
+  0%,
+  100% {
+    translate: 0 calc(var(--boxRipple) * 5px);
+  }
+  50% {
+    translate: 0 calc(var(--boxRipple) * -5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gpusPanel.boxRippling .gpuBox {
+    animation: none;
+  }
+}
+
+/* ── type: the design system's three faces ─────────────────────────────
+   Numbers and data stay in the body face (Courier Prime). Structure (panel
+   and overlay headings, labels, buttons) is Archivo. Running copy (overlay
+   text, the tutorial, the news) is Source Serif. These come last so they
+   win over the rules above that reset a control to font: inherit. */
+.panel h2,
+#logPanel h2,
+.ovcard h2,
+#ovDie .dieHead h2 {
+  font-family: var(--f-disp);
+  font-weight: var(--fw-h2);
+  letter-spacing: var(--ls-h2);
+}
+.ovcard h2,
+#ovDie .dieHead h2 {
+  text-transform: var(--tt-h2);
+  letter-spacing: var(--ls-h1);
+}
+#rdTabs button,
+button.serveRent,
+button.serveRm,
+button.serveNew,
+.stat .l,
+.rdHowL,
+.serveDraftT,
+#ovDie .dieAdvice > span:first-child,
+#ovStart .kicker,
+.lbhd span,
+.scoreName label,
+.scoreShare > span {
+  font-family: var(--f-ui);
+  letter-spacing: var(--ls-kicker);
+}
+.ovcard > p,
+.ovcard li,
+#ovStart .ovcard p,
+#tutT,
+#logFull,
+#logStripText {
+  font-family: var(--f-prose);
+}

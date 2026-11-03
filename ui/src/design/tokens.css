@@ -1,0 +1,65 @@
+/* Chosen site direction (INF-77): technical report.
+   Paper in the light theme, charcoal in the dark theme (the game's near-black,
+   not the navy sheet). Green is the accent; it has to clear 4.5:1 as text
+   on the paper and as the label on the primary button. */
+
+:root,
+[data-theme="light"] {
+  --bg: #fbfbf9;
+  --ink: #1c1c1a;
+  --dim: #5e5c56;
+  --hair: #d8d6d0;
+  --grid: #c4c2ba;
+  --surface: #f3f2ec;
+  --ground: #e8e7e1;
+  --viz-ours: #2f6e00;
+  --viz-on: #ffffff;
+  --elise: #f3e3d8;
+  --accent: var(--viz-ours);
+  --accent-on: var(--viz-on);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #121416;
+  --ink: #e8e6e1;
+  --dim: #a7a59e;
+  --hair: #2c2f33;
+  --grid: #454840;
+  --surface: #1b1e21;
+  --ground: #0b0d10;
+  --viz-ours: #c8e800;
+  --viz-on: #121416;
+  --elise: #3a2a22;
+  --accent: var(--viz-ours);
+  --accent-on: var(--viz-on);
+  color-scheme: dark;
+}
+
+/* Type ramp. Minor third on a 17px body. 12, 14, 17, 20, 24, 29.
+   Prose is Source Serif, including the table of contents. Structure
+   (headings, navigation, buttons) is Archivo. Data, code, and charts
+   are Courier Prime. */
+:root {
+  --font: "Courier Prime", Courier, "Courier New", monospace;
+  --f-ui: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: var(--font);
+  --f-disp: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-prose: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --fw-bold: 700;
+
+  --fs-0: 12px;
+  --fs-1: 14px;
+  --fs-2: 17px;
+  --fs-3: 20px;
+  --fs-4: 24px;
+  --fs-5: 29px;
+
+  --fw-h1: 800;
+  --fw-h2: 800;
+  --tt-h1: uppercase;
+  --tt-h2: uppercase;
+  --ls-h1: 0.02em;
+  --ls-h2: 0.08em;
+  --ls-kicker: 0.1em;
+}

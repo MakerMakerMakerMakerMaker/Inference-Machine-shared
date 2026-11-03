@@ -1,0 +1,70 @@
+#chartwrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.chartBand {
+  flex: 1 1 0;
+  min-height: 0;
+  /* on a short window the bands squeeze below their legend line; each one clips
+     its own rather than printing it over the next band's */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--hair);
+}
+
+.chartBand:last-of-type {
+  border-bottom: 0;
+}
+
+.chartPlot {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* recharts makes the plot focusable, so a click drew a focus outline round the
+   graph. Hovering still lights the end of the line; a click no longer outlines it. */
+.chartPlot :focus {
+  outline: none;
+}
+
+.chartLegend {
+  order: -1;
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  padding: 2px 8px 0;
+  font-size: var(--fs-dense-1);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.chartLegend[data-tip] {
+  cursor: help;
+}
+
+.chartLine {
+  font-variant-numeric: tabular-nums;
+}
+
+.chartLabel {
+  color: var(--faint);
+}
+
+.chartUtil {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chartUtil .serveIco {
+  width: 11px;
+  height: 11px;
+}
+
+.chartUtil b {
+  font-weight: 650;
+}

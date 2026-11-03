@@ -1,0 +1,36 @@
+{
+  "seed": 4242,
+  "start": {
+    "seed": 4242,
+    "capital": 10000,
+    "gpus": 0,
+    "model": "gigaparrot",
+    "price": 0.17
+  },
+  "tick": 29120,
+  "money": 1387.7003341150876,
+  "events": [
+    {
+      "tick": 10,
+      "type": "rent",
+      "n": 2,
+      "part": "h2o"
+    },
+    {
+      "tick": 10,
+      "type": "serve",
+      "op": "add",
+      "model": "gigaparrot",
+      "part": "h2o",
+      "copies": 1
+    },
+    {
+      "tick": 400,
+      "type": "rd",
+      "op": "add",
+      "model": "gigaparrot",
+      "part": "h2o",
+      "gpus": 1
+    }
+  ]
+}

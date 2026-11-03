@@ -1,0 +1,56 @@
+{
+  "seed": 7,
+  "start": {
+    "seed": 7,
+    "capital": 10000,
+    "gpus": 0,
+    "model": "gigaparrot",
+    "price": 0.17,
+    "sla": "standard",
+    "kwh": 0.15
+  },
+  "tick": 3116,
+  "money": 7479.557481936542,
+  "events": [
+    {
+      "tick": 0,
+      "type": "rent",
+      "n": 2,
+      "part": "h2o"
+    },
+    {
+      "tick": 0,
+      "type": "rent",
+      "n": 1,
+      "part": "h2o"
+    },
+    {
+      "tick": 0,
+      "type": "rent",
+      "n": 1,
+      "part": "h2o"
+    },
+    {
+      "tick": 0,
+      "type": "serve",
+      "op": "add",
+      "model": "gigaparrot",
+      "part": "h2o",
+      "copies": 1
+    },
+    {
+      "tick": 0,
+      "type": "rd",
+      "op": "add",
+      "model": "gigaparrot",
+      "part": "h2o",
+      "gpus": 1
+    },
+    {
+      "tick": 117,
+      "type": "rd",
+      "op": "install",
+      "id": "r1"
+    }
+  ]
+}

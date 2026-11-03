@@ -1,0 +1,877 @@
+/* Phone shell. Same panels as the laptop board; one tab is on screen.
+   Breakpoint matches MOB_QUERY in layout.tsx and mobScreen in game.ts.
+   The header is fixed: brand (40px), capital / profit (52px), time left / pause
+   (44px), leaderboard / skip buttons (36px), news line (44px). */
+#mobNav,
+#logClose,
+.lockMob {
+  display: none;
+}
+/* Registered so it can be animated (the tab flash); every --card value is a colour. */
+@property --card {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #121416;
+}
+
+@media (max-width: 900px), (pointer: coarse) and (max-width: 1180px) {
+  /* phone type stays at its set sizes; the laptop board's grows (board.css) */
+  :root {
+    --tpx: 1px;
+  }
+  html,
+  body,
+  #stage {
+    height: 100%;
+    height: 100dvh;
+  }
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 0;
+    /* the open panel fills the space between the header (216px) and the footer
+       (59px), with the same 8px gutter on every side */
+    padding: calc(224px + env(safe-area-inset-top)) 8px
+      calc(67px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  .colSplit,
+  .rowSplit,
+  .panelFold {
+    display: none !important;
+  }
+  /* #workRow > .rackWrap is named here too: the laptop rule of that name outranks a
+     bare .rackWrap, and left as a flex box each empty wrapper took a share of the
+     column and pushed the open panel down the screen. */
+  #rightSection,
+  #workRow,
+  #center,
+  #centerBody,
+  .rackWrap,
+  #workRow > .rackWrap {
+    display: contents;
+  }
+  /* the phone layout shows one panel per tab, full height; no rack above it */
+  .rackHead {
+    display: none;
+  }
+  #left {
+    order: 1;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  html[data-tab="serve"] #left,
+  html[data-tab="rd"] #left,
+  html[data-tab="stats"] #left {
+    flex: 0 0 0px;
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+    padding: 0;
+    gap: 0;
+  }
+
+  #brandBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 8;
+    min-height: calc(40px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 12px 0;
+    box-sizing: border-box;
+    background: var(--bg);
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+  }
+  /* The bar is its own fixed layer at the header's level, so the sound and font
+     panels it holds would sit behind the rows under it (capital, profit, time,
+     the leaderboard row, the news strip). While one is open the bar rises above
+     the whole header, the news popup and the tab bar, still under the tutorial
+     and the popups. */
+  #brandBar:has(.soundPanel) {
+    z-index: 14;
+  }
+  /* Grey under the whole fixed header, with its row lines, so a tile that is
+     hidden (infinite mode has no clock or leaderboard) leaves header, not page. */
+  #app::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 7;
+    height: calc(172px + env(safe-area-inset-top));
+    background:
+      linear-gradient(var(--hair), var(--hair)) 0
+        calc(91px + env(safe-area-inset-top)) / 100% 1px no-repeat,
+      linear-gradient(var(--hair), var(--hair)) 0
+        calc(135px + env(safe-area-inset-top)) / 100% 1px no-repeat,
+      linear-gradient(var(--hair), var(--hair)) 0
+        calc(171px + env(safe-area-inset-top)) / 100% 1px no-repeat,
+      var(--bg);
+  }
+  #hud .stat:has(#hMoney),
+  #tClock {
+    height: 52px;
+    min-height: 52px;
+    margin: 0;
+    border-radius: 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--hair);
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    background: var(--bg);
+  }
+  #hud .stat:has(#hMoney) {
+    position: relative;
+    flex: 0 0 auto;
+    width: max-content;
+    padding: 0 8px;
+    border-left: 0;
+    border-right: 0;
+  }
+  /* Time left takes its own row under capital and profit, the full width, and
+     runs under #pauseBtn so the button sits on the header, not on the page. */
+  #tClock {
+    position: fixed;
+    top: calc(92px + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    z-index: 8;
+    width: auto;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 100px 0 8px;
+    border-left: 0;
+    border-right: 0;
+  }
+  #hud .stat:has(#hMoney) .v,
+  #tClock .v {
+    margin-left: 0;
+    text-align: left;
+  }
+  #hud .stat:has(#hMoney) .v {
+    font-size: var(--fs-2);
+  }
+  /* the desktop Capital tile is 1.5x; the phone header keeps its own sizes */
+  #hud .stat:has(#hMoney) .l {
+    font-size: var(--fs-dense-1);
+  }
+  #hud .stat:has(#hMoney) .capArrow {
+    width: 11px;
+    height: 11px;
+  }
+  #tClock .v {
+    font-size: var(--fs-1);
+  }
+  #hud .stat:has(#hMoney) .hanim,
+  #tClock .hanim {
+    display: none;
+  }
+  /* Profit shares the capital row, on its right, so the header stays one line tall. */
+  #hud .stat.income {
+    position: relative;
+    z-index: 9;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: max-content;
+    height: 52px;
+    min-height: 52px;
+    margin: 0;
+    padding: 0 8px;
+    display: grid;
+    grid-template-columns: auto auto;
+    align-content: center;
+    justify-content: start;
+    column-gap: 2px;
+    row-gap: 1px;
+    background: var(--bg);
+    border: 0;
+    border-bottom: 1px solid var(--hair);
+    border-radius: 0;
+    overflow: visible;
+  }
+  #hud .stat.income > .l {
+    grid-column: 1 / -1;
+    font-size: var(--fs-dense-1);
+  }
+  #hud .stat.income > .v {
+    grid-column: 1;
+    grid-row: 2;
+    margin-left: 0;
+    font-size: var(--fs-1);
+    white-space: nowrap;
+  }
+  #hud .stat.income .incomeToggle {
+    display: inline-flex !important;
+    grid-column: 2;
+    grid-row: 2;
+    width: 16px !important;
+    height: 16px !important;
+  }
+  #hud .stat.income .incomeRow > :last-child {
+    margin-right: 4px;
+  }
+  #hud .stat.income .incomeRow > .l {
+    flex: 0 1 auto;
+    white-space: normal;
+  }
+  /* on a phone the breakdown drops down from the chevron, over the board */
+  #hud .stat.income:not(.open) .incomeBreak {
+    display: none;
+  }
+  /* While it is open the header rises over the news strip under it, the way the
+     brand bar does for the sound panel, so the drop-down covers that too. */
+  #hud:has(.stat.income.open) {
+    z-index: 9;
+  }
+  /* The box grows with its widest row, up to what is left of the screen to the
+     right of Capital; past that a label wraps rather than the figures running
+     out past the box's background, over the skip buttons. */
+  #hud .stat.income .incomeBreak {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    width: max-content;
+    min-width: max(100%, 176px);
+    max-width: calc(100vw - 160px);
+    box-sizing: border-box;
+    background: var(--bg);
+    z-index: 2;
+    padding: 4px 8px 6px;
+    border-bottom: 1px solid var(--hair);
+  }
+  #pauseBtn {
+    position: fixed;
+    top: calc(96px + env(safe-area-inset-top));
+    right: 8px;
+    z-index: 9;
+    width: auto;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  #center:not(.full) #logStrip,
+  #logStrip {
+    display: flex !important;
+    position: fixed;
+    top: calc(172px + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    z-index: 8;
+    height: 44px;
+    margin: 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    cursor: pointer;
+  }
+  #logPanel {
+    display: none !important;
+  }
+  html.news-open #logPanel {
+    display: flex !important;
+    position: fixed;
+    z-index: 12;
+    left: 0;
+    right: 0;
+    top: calc(216px + env(safe-area-inset-top));
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    height: auto;
+    border-radius: 0;
+    padding: 8px 12px 12px;
+  }
+  html.news-open #logClose {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    min-height: 36px;
+    padding: 0 12px;
+    background: var(--ground);
+    color: var(--ink);
+    border: 1px solid var(--hair);
+    border-radius: 0;
+    font: inherit;
+  }
+  #logFull {
+    box-shadow: none;
+  }
+
+  #timePanel {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    gap: 8px;
+  }
+  #timePanel > h2 {
+    display: none;
+  }
+  /* Its header pieces are fixed, so with no tiles left in flow it must not take a row. */
+  html:not([data-tab="monitor"]) #timePanel,
+  #timePanel:not(
+    :has(
+      #hud
+        > .stat:not(#tClock):not(#tGrind):not(#tscl):not(.money):not(.income):not(
+          [hidden]
+        )
+    )
+  ) {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: visible;
+  }
+  /* Capital then profit, on the left of their own row with a little air between
+     them (the other tiles in #hud are fixed, so the gap only falls between these two). */
+  #hud {
+    position: fixed;
+    top: calc(40px + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    z-index: 8;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 24px;
+    width: auto;
+    height: 52px;
+    min-height: 0;
+    background: transparent;
+  }
+  /* fourth header row: the leaderboard on the left, the skips on the right */
+  #tGrind,
+  #tscl .clockActs {
+    position: fixed;
+    top: calc(136px + env(safe-area-inset-top));
+    z-index: 8;
+    height: 36px;
+    min-height: 36px;
+    margin: 0;
+    background: var(--bg);
+    border: 0;
+    border-bottom: 1px solid var(--hair);
+    border-radius: 0;
+  }
+  #tGrind {
+    left: 0;
+    width: calc(50% - 46px);
+    padding: 0 6px;
+    gap: 6px;
+  }
+  #tGrind .l {
+    display: none;
+  }
+  #tGrind .v {
+    margin-left: 0;
+    font-size: var(--fs-0);
+    text-align: left;
+  }
+  #tscl {
+    position: absolute;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+  }
+  #tscl > .l {
+    display: none;
+  }
+  #tscl .clockActs {
+    left: calc(50% - 46px);
+    right: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px 0 0;
+  }
+  #tscl .skip {
+    width: 100%;
+    height: 28px;
+    padding: 0 4px;
+    gap: 3px;
+    font-size: var(--fs-dense-2);
+  }
+  #tscl .skip svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  html:not([data-tab="fleet"]) #gpusPanel {
+    display: none !important;
+  }
+  html:not([data-tab="monitor"]) #chartwrap,
+  html:not([data-tab="monitor"])
+    #hud
+    .stat:not(:has(#hMoney)):not(#tClock):not(#tscl):not(#tGrind):not(.income) {
+    display: none !important;
+  }
+  html:not([data-tab="serve"]) #servingPanel,
+  html:not([data-tab="rd"]) #rdPanel,
+  html:not([data-tab="stats"]) #statsPanel {
+    display: none !important;
+  }
+  html[data-tab="serve"] #servingPanel,
+  html[data-tab="rd"] #rdPanel,
+  html[data-tab="stats"] #statsPanel {
+    order: 1;
+    flex: 1 1 auto;
+    align-self: stretch;
+    width: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: auto;
+  }
+  #servingPanel,
+  #rdPanel,
+  #statsPanel,
+  #gpusPanel {
+    max-height: none;
+  }
+  html[data-tab="fleet"] #left,
+  html[data-tab="monitor"] #left {
+    padding-bottom: 0;
+  }
+  /* the laptop's dragged fleet height (.hasH) does not apply; the list scrolls inside */
+  #gpusPanel,
+  #gpusPanel.hasH {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+  #gpusPanel #fleetBlock {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  #chartwrap {
+    flex: 1 1 auto;
+    min-height: 360px;
+  }
+  .chartBand {
+    flex: 1 1 0;
+    min-height: 112px;
+  }
+  .chartPlot {
+    flex: 1 1 auto;
+    min-height: 84px;
+  }
+
+  #fleetTable thead {
+    display: none;
+  }
+  #fleetTable,
+  #fleetTable tbody {
+    display: block;
+  }
+  #fleetTable tbody tr,
+  #fleetTable tbody td {
+    height: auto !important;
+  }
+  /* Rows are plain dividers, not filled cards: a dark fill is reserved for controls. */
+  #fleetTable tr {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.4fr);
+    gap: 6px 8px;
+    height: auto;
+    margin: 0;
+    padding: 10px 0;
+    border-top: 1px solid var(--hair);
+  }
+  #fleetTable tbody tr:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+  #fleetTable tr.locked {
+    padding: 8px 0;
+  }
+  #fleetTable tr.total {
+    border-top-color: var(--grid);
+  }
+  #fleetTable td {
+    height: auto;
+    padding: 0;
+    text-align: left;
+    background: none;
+    border: 0;
+  }
+  #fleetTable td.n {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding-left: 0;
+  }
+  #fleetTable .rentLock {
+    height: auto;
+    justify-content: flex-start;
+    padding: 0;
+    box-shadow: none;
+  }
+  #fleetTable td:first-child,
+  #fleetTable tr.locked td {
+    grid-column: 1 / -1;
+    display: block;
+  }
+  #fleetTable td.n::before {
+    color: var(--dim);
+    font-weight: 400;
+    font-size: var(--fs-dense-1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #fleetTable td:nth-child(2)::before {
+    content: "Rented";
+  }
+  /* the usage bar takes the three middle grid columns (Serving · R&D · Idle). It
+     has no label of its own, so it sits at the bottom of the row, level with the
+     Rented and $/day figures beside it. */
+  #fleetTable td.usage {
+    grid-column: span 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 0;
+    padding-left: 0;
+  }
+  #fleetTable td:nth-child(4)::before {
+    content: "$/day";
+  }
+  #fleetTable tr.locked td::before,
+  #fleetTable tr.total td:first-child::before {
+    content: none;
+  }
+  #fleetTable tr.total td {
+    background-image: none;
+    padding-top: 0;
+  }
+  #fleetTable .rentAdd {
+    height: auto;
+    min-height: 44px;
+  }
+  #fleetBlock.fit1 .rentHr,
+  #fleetBlock.fit2 .gpuVendor {
+    display: inline;
+  }
+  #fleetBlock.fit3 .cartIco {
+    display: block;
+  }
+
+  #rdTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  #rdTabs button {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+  #rdBody {
+    overflow: auto;
+  }
+  #rdTps,
+  #rdDemand {
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+  }
+  #rdTps th:first-child,
+  #rdTps td:first-child,
+  #rdDemand th:first-child,
+  #rdDemand td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--card);
+  }
+
+  #servingPanel .big,
+  #rdPanel .big,
+  button.serveNew,
+  .ovcard .big,
+  #evChoices .big {
+    min-height: 44px;
+  }
+  /* 16px keeps iOS from zooming in on focus. The fixed GPU field stands in
+     for a select with one option, so it takes the same box. */
+  select,
+  input,
+  textarea,
+  .serveGpuFixed {
+    font-size: var(--fs-2);
+  }
+  .ctl select,
+  select.serveCount,
+  button.serveStep,
+  button.serveRent,
+  .serveGpuFixed {
+    box-sizing: border-box;
+    min-height: 36px;
+    padding: 0 8px;
+  }
+  .ovcard {
+    width: min(560px, calc(100% - 16px));
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+  }
+  /* The brand bar holds the logo, wordmark, GitHub, X, Blog, Share, theme and
+     sound. On the narrowest phones the gaps close up and the wordmark gives way
+     (ellipsis) before anything spills off the right edge. */
+  /* The bar's words are 18px on wider screens (board.css). On a phone that would
+     push the icons off the right edge, so the wordmark, Blog and bug? keep the
+     bar's 14px here, with the gaps closed up a little. */
+  @media (max-width: 540px) {
+    #brandBar {
+      gap: 8px;
+    }
+    #brandBar .wordmark,
+    #brandBar a:not(.wordmark, .muteBtn) {
+      font-size: var(--fs-1);
+    }
+  }
+  @media (max-width: 380px) {
+    #brandBar {
+      gap: 6px;
+    }
+    #brandBar .wordmark {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  /* On the narrowest phones the start buttons and the theme and sound
+     corner no longer fit one row; the corner gets a row of its own under them. */
+  @media (max-width: 380px) {
+    #ovStart .row {
+      padding-right: 0;
+      padding-bottom: 52px;
+    }
+  }
+
+  #mobNav {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 13;
+    padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--hair);
+  }
+  .mobTabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  /* the pixel icons cut their holes in --card, so it has to match the button fill */
+  #mobNav button {
+    --card: var(--btn-bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 1px;
+    background: var(--btn-bg);
+    color: var(--btn-ink);
+    border: 1px solid var(--btn-line);
+    border-radius: 0;
+  }
+  #mobNav button .panelIco {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    color: inherit;
+  }
+  /* the panel's name over its icon; shrinks on the narrowest phones so
+     "Monitoring" still fits a fifth of the bar */
+  .mobTabLbl {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--f-ui);
+    font-size: clamp(7px, 2.4vw, var(--fs-dense-1));
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+  #mobNav button[aria-pressed="true"] {
+    border-color: var(--ours);
+    color: var(--ours);
+  }
+  .lockMob {
+    display: inline;
+  }
+  #mobNav button {
+    position: relative;
+  }
+  /* Pop in yellow, settle, hold, then ease back to the button's own look (no
+     0% or 100% frame, so it starts and ends on whatever state the tab is in).
+     --card rides along so the icon's cut-outs follow the fill. */
+  #mobNav button.lit {
+    animation: tabLit 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s);
+  }
+  /* The tutorial's next step is on this tab: the same flash, repeating with
+     a short rest, until the player opens it. */
+  #mobNav button.tutCall {
+    animation: tabLit 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s infinite;
+  }
+  #mobNav button.tutCall::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    inset: -2px;
+    border: 2px solid var(--ours);
+    opacity: 0;
+    animation: tabRing 1.2s ease-out 0.3s infinite;
+  }
+  #mobNav button.tutCall .panelIco {
+    animation: tabIcoCall 2.4s cubic-bezier(0.3, 1.6, 0.5, 1) 0.3s infinite;
+  }
+  #mobNav button.lit::before,
+  #mobNav button.lit::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+  /* shine sweeping across the fill */
+  #mobNav button.lit::before {
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, #ffffffb0 50%, transparent 65%)
+      no-repeat;
+    background-size: 250% 100%;
+    background-position: 150% 0;
+    animation: tabShine 0.9s ease-in-out calc(var(--d, 0s) + 0.25s) both;
+  }
+  /* two rings rippling out */
+  #mobNav button.lit::after {
+    inset: -2px;
+    border: 2px solid var(--ours);
+    opacity: 0;
+    animation: tabRing 0.8s ease-out var(--d, 0s) 2;
+  }
+  #mobNav button.lit .panelIco {
+    animation: tabIco 0.75s cubic-bezier(0.3, 1.6, 0.5, 1) var(--d, 0s);
+  }
+  @keyframes tabLit {
+    7% {
+      transform: scale(1.14);
+      background: var(--ours);
+      border-color: var(--ours);
+      color: var(--ground);
+      --card: var(--ours);
+      box-shadow: 0 0 22px 4px color-mix(in srgb, var(--ours) 60%, transparent);
+    }
+    14% {
+      transform: scale(0.95);
+    }
+    21% {
+      transform: scale(1.03);
+    }
+    28%,
+    62% {
+      transform: scale(1);
+      background: var(--ours);
+      border-color: var(--ours);
+      color: var(--ground);
+      --card: var(--ours);
+      box-shadow: 0 0 12px 0 color-mix(in srgb, var(--ours) 40%, transparent);
+    }
+  }
+  @keyframes tabShine {
+    to {
+      background-position: -50% 0;
+    }
+  }
+  @keyframes tabRing {
+    0% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.25, 1.7);
+    }
+  }
+  @keyframes tabIco {
+    30% {
+      transform: scale(1.4) rotate(-12deg);
+    }
+    60% {
+      transform: scale(0.92) rotate(6deg);
+    }
+  }
+  /* tabIco squeezed into the first third of a 2.4s loop, then still */
+  @keyframes tabIcoCall {
+    10% {
+      transform: scale(1.4) rotate(-12deg);
+    }
+    20% {
+      transform: scale(0.92) rotate(6deg);
+    }
+    30% {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #mobNav button.lit,
+    #mobNav button.lit .panelIco,
+    #mobNav button.tutCall,
+    #mobNav button.tutCall .panelIco {
+      transform: none !important;
+    }
+    #mobNav button.lit::before,
+    #mobNav button.lit::after,
+    #mobNav button.tutCall::after {
+      display: none;
+    }
+  }
+  .mobBubble {
+    position: absolute;
+    top: 5px;
+    right: calc(50% - 20px);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--elise);
+    box-shadow: 0 0 0 2px var(--ground);
+    animation: mobBubble 1.4s ease-in-out infinite;
+  }
+  @keyframes mobBubble {
+    50% {
+      transform: scale(1.3);
+    }
+  }
+
+  #tutCard {
+    box-sizing: border-box;
+    max-width: calc(100vw - 16px);
+  }
+}

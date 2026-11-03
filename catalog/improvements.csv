@@ -1,0 +1,48 @@
+title
+Compiling a kernel on first use got faster by refusing to include PyTorch's giant header and moving the bookkeeping to Python
+Cutting one long sequence's keys into chunks so 132 streaming multiprocessors are not left idle while one of them does all the work
+"Picking the next token stopped needing a sort, and stopped taking an unpredictable number of tries"
+"Prompt work and one-token work stopped being two separate GPU launches, and started sharing one kernel that never ends"
+"The attention kernel stopped paying a merge tax on work it never split, and the merge itself shrank from a whole thread block to a single warp"
+A filter that was asked to keep everything stopped searching for where to cut
+"One thread block now squeezes four tokens through the same barrier, and the launch stopped creating twice the blocks it needed"
+"Finding the k best tokens stopped being a guessing game over values and became four passes over bytes, with the vocabulary parked in fast memory"
+The normalized activations stopped taking a round trip through memory in 16 bits before being squeezed into 4
+"A matrix multiply for eight rows stopped pretending it had a hundred and twenty-eight, by computing the transpose instead"
+"Neighbouring thread blocks started reading each other's scratchpads, so picking the top k stopped going through main memory"
+"A glue kernel that refused 8-bit inputs was blocking the whole 8-bit long-context path, and teaching it narrower loads unblocked it"
+"The GPUs started shrinking their numbers to 8 bits before shipping them to each other, and spent their idle cycles doing it"
+Kernels that were rebuilt from scratch in every new process started being saved to disk and relinked in milliseconds
+"A fused expert-parallel mixture-of-experts kernel became usable inside a real serving engine, improving prefill throughput"
+The all-reduce tail of a tensor-parallel MoE layer got a hardware-native fused backend that picks its protocol by token count
+"On the selected GPU, the best attention kernel selector always picked the old one"
+"A whole mixture-of-experts layer collapsed into one GPU kernel launch, for the eight-token batches that decoding actually produces"
+Picking the fastest matrix-multiply kernel was inefficient
+The API server stopped paying an asyncio tax on every token: the engine moved to its own plain loop
+Turning text into numbers stopped being done one request at a time: the API server now micro-batches tokenization
+The server stopped sending one network message per generated token: buffer N tokens per reply
+"Several long prompts can now be read at once, and short prompts stopped getting stuck behind them"
+The scheduler stopped waiting for the GPU: it now plans step N+1 while step N is still running
+The scheduler stopped reserving batch space for draft tokens that were never going to exist
+Models learned to reuse a shared prompt: state-space snapshots are now cached at block boundaries
+"The attention cache learned to store keys and values in three or four bits, so a GPU holds several times more conversation"
+"The KV cache for all layers of a block is now allocated in one contiguous chunk, so moving a block to or from the GPU is one large copy instead of dozens of small ones"
+"Stopped writing the recurrent state back to GPU memory on every decode step, keeping a small ring buffer of recent inputs and replaying it instead"
+Stitched partial attention results together with a hand written kernel instead of a generic one
+"Rewrites the kernel that sorts tokens by expert so its counters fit in a few kilobytes of fast memory, and the three special case implementations collapse into one"
+Hands the whole mixture of experts block to vendor's own hand written kernels instead of running generic ones
+The FP8 activation-quantization kernel got faster by reading 16 values per thread instead of 4
+Turns skinny FP8 matrix multiplications sideways so the tensor core's fixed 64 or 128 row shape stops being mostly padding
+"The kernel that squeezes activations down to 4 bit numbers learns to fetch 32 bytes per thread instead of 16, and to spread its work across the long dimension"
+"The bit-for-bit reproducible mode stops unpacking 8 bit weights into 16 bit ones before every matrix multiply, and instead runs a real 8 bit kernel pinned to one fixed shape"
+"Rewrites the step that decides which speculated tokens survive as four kernels over a flat ragged layout, removing every CPU-GPU stall and every padded vocabulary-sized tensor"
+A speculative drafter can now guess seven tokens in one forward pass instead of seven
+The all-reduce between GPUs and the normalization after it became one kernel
+"One request's KV cache is now split across GPUs by token position, so long contexts stop filling up memory"
+"The whole decode step, attention included, can now be replayed as one CUDA graph, cutting per-token latency for small models"
+Attention setup code stopped asking the GPU questions it had to wait for
+"One number in a config file went from 512 to 1024, and a speculative-decoding workload got much faster"
+Switched top-k/top-p sampler to a custom set of kernels
+"Stopped re-reading a reasoning model's entire thought so far on every decode step just to check whether it has finished thinking, and instead looks up a single end token in the handful of tokens that are new"
+Rebuilt decode attention kernel around a matrix instruction that processes a 16 by 16 tile instead of a 4 by 4 one
+Reads the KV cache faster during decode by switching to vendor's hand-written paged attention kernel

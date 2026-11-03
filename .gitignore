@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*_override.tf
+.terraform.tfstate.lock.info
+crash.log
+.env
+.DS_Store

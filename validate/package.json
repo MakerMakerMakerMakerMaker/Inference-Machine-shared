@@ -1,0 +1,12 @@
+{
+  "name": "inference-validate",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

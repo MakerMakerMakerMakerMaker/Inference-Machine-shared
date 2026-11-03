@@ -1,0 +1,39 @@
+# The checks from .github/workflows/ci.yml, except terraform validate.
+# The tests need Playwright's Chromium (see tests/README.md) and take about a minute.
+#   pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ui-typecheck
+        name: ui typecheck
+        entry: npm run typecheck --prefix ui
+        language: system
+        files: ^ui/
+        types_or: [ts, tsx, javascript, json]
+        pass_filenames: false
+      - id: ui-lint
+        name: ui lint
+        entry: npm run lint --prefix ui
+        language: system
+        files: ^ui/
+        types_or: [ts, tsx, javascript]
+        pass_filenames: false
+      - id: ui-prettier
+        name: ui prettier
+        entry: sh -c "cd ui && npx prettier --check src vite"
+        language: system
+        files: ^ui/(src|vite)/
+        pass_filenames: false
+      - id: tests
+        name: build, replay and browser probe
+        entry: sh -c "npm run build --prefix ui && npm run test:replay && npm run test:probe"
+        language: system
+        files: ^(ui|tests|validate|catalog)/|^package(-lock)?\.json$
+        pass_filenames: false
+      - id: terraform-fmt
+        name: terraform fmt
+        entry: terraform -chdir=deploy fmt -check -recursive
+        language: system
+        files: ^deploy/
+        types: [terraform]
+        pass_filenames: false

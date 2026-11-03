@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+
+project_id = "your-gcp-project"
+domain     = "game.example.com"
+
+# region    = "us-central1"
+# image_tag = "latest"
+
+# Optional: error reporting. Stored in Secret Manager; empty leaves Sentry off.
+# sentry_dsn = "https://<key>@<org>.ingest.sentry.io/<project>"
+
+# Optional: a Cloud DNS zone in project_id whose apex is domain, and the
+# records to write there. These are Cloud Run's domain-mapping addresses.
+# dns_managed_zone = "your-zone"
+# dns_records = {
+#   A    = ["216.239.32.21", "216.239.34.21", "216.239.36.21", "216.239.38.21"]
+#   AAAA = ["2001:4860:4802:32::15", "2001:4860:4802:34::15", "2001:4860:4802:36::15", "2001:4860:4802:38::15"]
+# }

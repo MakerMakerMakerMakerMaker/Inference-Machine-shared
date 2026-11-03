@@ -1,0 +1,66 @@
+.stat {
+  position: relative;
+}
+
+.stat.money .v {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: visible;
+}
+/* inline-block so the hype bounce (CapitalFx.tsx) can scale it */
+.capAmt {
+  display: inline-block;
+  transform-origin: 50% 60%;
+}
+/* the coins and cash flying off the Capital tile: over the board, under the
+   tutorial and the popups */
+.capFx {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 11;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+.capArrow {
+  width: 16.5px;
+  height: 16.5px;
+  flex: none;
+}
+.capArrow.up {
+  color: var(--good);
+}
+.capArrow.dn {
+  color: var(--warn);
+}
+.stat.money .v .dg.up {
+  color: var(--good);
+}
+.stat.money .v .dg.dn {
+  color: var(--warn);
+}
+
+/* the riches popcorning up from the bottom of the window (LuxuryPopcorn.tsx):
+   over the board, under the tutorial and the popups, never in the way of a click */
+.luxLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  overflow: hidden;
+  pointer-events: none;
+}
+.luxPop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  transform-origin: 50% 100%;
+}
+.luxPop svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  shape-rendering: crispEdges;
+}

@@ -1,0 +1,183 @@
+#art {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: auto;
+  background: var(--ground);
+  color: var(--ink);
+  padding: 28px 32px 72px;
+}
+
+.artHead {
+  max-width: 1080px;
+  margin: 0 auto 22px;
+}
+
+.artKicker {
+  margin: 0 0 6px;
+  font-family: var(--f-ui);
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.artHead h1 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-family: var(--f-disp);
+  font-size: var(--fs-4);
+  font-weight: var(--fw-h1);
+  text-transform: var(--tt-h1);
+  letter-spacing: var(--ls-h1);
+}
+
+.artHead p {
+  margin: 0;
+  color: var(--dim);
+  font-size: var(--fs-1);
+}
+
+.artHead a {
+  color: var(--ours);
+}
+
+.artGrid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.artGrid figure {
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 16px 12px 12px;
+}
+
+.artGlyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  background: var(--ground);
+  border-radius: 0;
+}
+
+button.artGlyph {
+  width: 100%;
+  padding: 0;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+button.artGlyph:hover,
+button.artGlyph:focus-visible {
+  border-color: var(--ours);
+}
+
+.artNewsBack {
+  position: fixed;
+  inset: 0;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.artNews {
+  width: min(440px, 100%);
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 18px;
+}
+
+.artNews .artGlyph {
+  height: 168px;
+}
+
+.artNews .artGlyph svg {
+  width: 144px;
+  height: 144px;
+}
+
+.artNews p {
+  margin: 14px 0 0;
+  font-size: var(--fs-1);
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.artNews p b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.artNews a {
+  color: var(--ours);
+}
+
+/* the game's tips are not on this page, so a paywalled link shows its own */
+.artNews [data-tip] {
+  position: relative;
+}
+
+.artNews [data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
+  white-space: nowrap;
+  padding: 4px 8px;
+  background: var(--ground);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  color: var(--ink);
+  font-size: var(--fs-0);
+}
+
+.artNews .artNewsNone {
+  font-style: italic;
+}
+
+.artNews button {
+  margin-top: 16px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.artGlyph svg {
+  width: 96px;
+  height: 96px;
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+.artGrid figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.artGrid figcaption b {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: var(--fs-1);
+}
+
+.artGrid figcaption span {
+  color: var(--dim);
+  font-size: var(--fs-dense-2);
+}

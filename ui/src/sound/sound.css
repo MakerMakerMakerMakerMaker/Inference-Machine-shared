@@ -1,0 +1,81 @@
+.soundMute {
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.soundList {
+  list-style: none;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.soundList li {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 1fr;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 0;
+  padding: 10px 14px;
+  font-size: var(--fs-1);
+}
+
+.soundList li b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.soundList li span {
+  color: var(--dim);
+  font-size: var(--fs-0);
+}
+
+.soundList button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--hair);
+  background: var(--ground);
+  color: var(--ours);
+  cursor: pointer;
+}
+
+.soundList button:hover,
+.soundList button.on {
+  border-color: var(--ours);
+}
+
+.soundHead,
+.soundNote {
+  max-width: 1080px;
+  margin: 32px auto 12px;
+}
+
+.soundNote {
+  margin-top: 0;
+  color: var(--dim);
+  font-size: var(--fs-1);
+}
+
+/* the dial over the music levels, with the station's mood beside it */
+.soundStation {
+  max-width: 1080px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  font-size: var(--fs-1);
+}
+.soundStation .stationTuner {
+  width: 220px;
+}
+.soundStation > span {
+  color: var(--dim);
+  font-size: var(--fs-0);
+  padding-bottom: 3px;
+}
